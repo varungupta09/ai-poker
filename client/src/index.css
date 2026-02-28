@@ -133,6 +133,150 @@ body {
   gap: 16px;
 }
 
+/* ── Simulation section on landing ── */
+.home-shell-scroll {
+  overflow-y: auto;
+  min-height: 100vh;
+  height: auto;
+}
+
+.home-sim {
+  position: relative;
+  z-index: 1;
+  margin-top: 32px;
+  padding: 20px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: linear-gradient(180deg, rgba(12,12,12,0.95), rgba(8,8,8,0.98));
+  box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+}
+
+.home-sim-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.sim-label {
+  font-family: "Press Start 2P", monospace;
+  font-size: 12px;
+  color: #e01b2d;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sim-counter {
+  margin-left: auto;
+  font-size: 11px;
+  color: rgba(255,255,255,0.5);
+  font-weight: 600;
+}
+
+.home-sim-table {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 380px;
+  border-radius: 14px;
+  background: radial-gradient(ellipse at center, #0f0608 0%, #050203 100%);
+  border: 1px solid rgba(255,255,255,0.08);
+  overflow: hidden;
+}
+
+.home-sim-table .scene {
+  transform: scale(0.85);
+  pointer-events: none;
+}
+
+.home-sim-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.sim-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.2);
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.sim-dot:hover {
+  background: rgba(255,255,255,0.4);
+}
+
+.sim-dot.active {
+  background: #e01b2d;
+  transform: scale(1.2);
+}
+
+/* Action ticker for live simulation */
+.sim-action-ticker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  margin-bottom: 12px;
+  background: linear-gradient(90deg, rgba(224, 27, 45, 0.15), rgba(224, 27, 45, 0.05));
+  border: 1px solid rgba(224, 27, 45, 0.3);
+  border-radius: 8px;
+  animation: ticker-pulse 2s ease-in-out infinite;
+}
+
+@keyframes ticker-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+.sim-action-player {
+  font-family: "Press Start 2P", monospace;
+  font-size: 10px;
+  color: #e01b2d;
+  text-transform: uppercase;
+}
+
+.sim-action-text {
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Pot display */
+.sim-pot-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 8px 16px;
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 8px;
+}
+
+.sim-pot-label {
+  font-family: "Press Start 2P", monospace;
+  font-size: 10px;
+  color: #ffd700;
+  text-transform: uppercase;
+}
+
+.sim-pot-amount {
+  font-family: "Press Start 2P", monospace;
+  font-size: 14px;
+  color: #fff;
+}
+
 .home-card {
   background: #111111;
   border: 2px solid rgba(255,255,255,0.12);
@@ -373,6 +517,46 @@ body {
   z-index: 1;
 }
 
+/* ── Bet chip stacks on felt ── */
+.bet-stack {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 32px;
+  height: 52px;
+  pointer-events: none;
+  animation: bet-pop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes bet-pop {
+  from { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+  to   { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
+}
+
+.bet-chip {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 28px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.35);
+}
+
+.bet-amount {
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: "Press Start 2P", monospace;
+  font-size: 6px;
+  color: #fff;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+  background: rgba(0,0,0,0.55);
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
 /* ── Suit colours ── */
 .red-suit  { color: #c82030; }
 .black-suit { color: #111111; }
@@ -399,6 +583,50 @@ body {
 
 .seat-label.is-you { border-color: #c82030; color: #ff6b7a; }
 .seat-label.is-dealer { border-color: #ffd700; color: #ffd700; }
+
+/* Folded player styles */
+.seat.folded {
+  opacity: 0.4;
+  filter: grayscale(0.5);
+}
+
+.seat-label.folded {
+  border-color: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.4);
+  text-decoration: line-through;
+}
+
+.seat-chips.folded {
+  color: rgba(255,255,255,0.25);
+}
+
+/* Winner highlight styles */
+.seat.winner {
+  animation: winner-glow 1s ease-in-out infinite;
+}
+
+@keyframes winner-glow {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.6)); }
+  50% { filter: drop-shadow(0 0 16px rgba(255, 215, 0, 0.9)); }
+}
+
+.seat-label.winner {
+  border-color: #ffd700;
+  color: #ffd700;
+  background: rgba(255, 215, 0, 0.2);
+  animation: winner-label-pulse 1s ease-in-out infinite;
+}
+
+@keyframes winner-label-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* Folded card styling */
+.card-wrap.folded {
+  opacity: 0.3;
+  transform: rotate(-5deg);
+}
 
 .seat-chips {
   font-size: 8px;

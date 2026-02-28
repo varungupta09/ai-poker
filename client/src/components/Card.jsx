@@ -1,5 +1,5 @@
 // Card.jsx – 3-D flip card with peek (tilt) animation
-export default function Card({ card, faceUp = false, peeking = false }) {
+export default function Card({ card, faceUp = false, peeking = false, folded = false }) {
   if (!card) {
     // placeholder / empty slot
     return (
@@ -20,7 +20,7 @@ export default function Card({ card, faceUp = false, peeking = false }) {
     <div
       className={`card-wrap ${faceUp ? "face-up" : "face-down"} ${
         peeking ? "peeking" : ""
-      }`}
+      } ${folded ? "folded" : ""}`}
     >
       <div className="card-inner">
         {/* Front */}
