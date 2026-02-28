@@ -1,0 +1,330 @@
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #0d0204;
+  font-family: "Inter", sans-serif;
+  color: #fff;
+  overflow: hidden;
+  height: 100vh;
+}
+
+#root { height: 100vh; display: flex; flex-direction: column; }
+
+/* ── Venue / crowd container ── */
+.venue {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  /* dark arena floor */
+  background: radial-gradient(ellipse 90% 70% at 50% 60%, #1a0508 0%, #0d0204 60%, #08010203 100%);
+}
+
+/* Spotlight cone that highlights the table center */
+.venue-spotlight {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 55% 45% at 50% 55%,
+      rgba(255,200,120,0.08) 0%,
+      rgba(255,200,120,0.03) 35%,
+      transparent 70%),
+    radial-gradient(ellipse 100% 100% at 50% 50%,
+      transparent 38%,
+      rgba(0,0,0,0.55) 65%,
+      rgba(0,0,0,0.80) 100%);
+  z-index: 2;
+}
+
+/* ── Table scene ── */
+.scene {
+  perspective: 1000px;
+  perspective-origin: 50% 85%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 3;
+}
+
+.table-wrap {
+  transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+.view-topdown  .table-wrap { transform: rotateX(0deg); }
+.view-player   .table-wrap { transform: rotateX(28deg); }
+.view-dealer   .table-wrap { transform: rotateX(28deg) rotate(180deg); }
+
+/* ── Felt table ── */
+.felt {
+  width: 760px;
+  height: 420px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, #1e7a45 0%, #155c34 60%, #0e3d22 100%);
+  border: 20px solid #7b4f1a;
+  box-shadow:
+    0 0 0 4px #9b6822,
+    inset 0 0 80px rgba(0,0,0,0.4);
+  position: relative;
+}
+
+.felt-inner {
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.08);
+}
+
+/* ── Card ── */
+.card-wrap {
+  width: 52px;
+  height: 74px;
+  perspective: 400px;
+}
+
+.card-inner {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.45s ease;
+  border-radius: 6px;
+}
+
+.card-wrap.face-up   .card-inner { transform: rotateY(0deg); }
+.card-wrap.face-down .card-inner { transform: rotateY(180deg); }
+
+/* peeking: tilt toward viewer */
+.card-wrap.peeking .card-inner {
+  transform: rotateX(-55deg) rotateY(0deg);
+}
+
+.card-face, .card-back {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.card-face {
+  background: #ffffff;
+  border: 1px solid #ddd;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 3px 5px;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1;
+  transform: rotateY(0deg);
+}
+
+.card-back {
+  background: #c82030;
+  border: 2px solid #fff;
+  transform: rotateY(180deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.card-back::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1.5px solid rgba(255,255,255,0.35);
+  border-radius: 4px;
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(255,255,255,0.08) 0px,
+    rgba(255,255,255,0.08) 2px,
+    transparent 2px,
+    transparent 8px
+  );
+}
+
+.card-back::after {
+  content: "♠";
+  font-size: 20px;
+  color: rgba(255,255,255,0.25);
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Suit colours ── */
+.red-suit  { color: #c82030; }
+.black-suit { color: #111111; }
+
+/* ── Player seats ── */
+.seat {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transform: translate(-50%, -50%);
+}
+
+.seat-label {
+  font-size: 9px;
+  font-family: "Press Start 2P", monospace;
+  background: rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 4px;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+
+.seat-label.is-you { border-color: #c82030; color: #ff6b7a; }
+.seat-label.is-dealer { border-color: #ffd700; color: #ffd700; }
+
+.seat-chips {
+  font-size: 8px;
+  color: rgba(255,255,255,0.5);
+}
+
+.cards-row {
+  display: flex;
+  gap: 4px;
+}
+
+/* view-dealer flips seat labels back */
+.view-dealer .seat > * {
+  transform: rotate(180deg);
+}
+
+/* ── Community ── */
+.community {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.pot-label {
+  position: absolute;
+  top: calc(50% + 50px);
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 9px;
+  font-family: "Press Start 2P", monospace;
+  color: rgba(255,255,255,0.6);
+}
+
+/* ── Dealer button ── */
+.dealer-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  color: #000;
+  font-size: 7px;
+  font-weight: 900;
+  display: grid;
+  place-items: center;
+  border: 2px solid #ccc;
+}
+
+/* ── Controls bar ── */
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 24px;
+  background: rgba(0,0,0,0.75);
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.ctrl-btn {
+  font-family: "Press Start 2P", monospace;
+  font-size: 9px;
+  padding: 10px 16px;
+  border-radius: 4px;
+  border: 2px solid rgba(255,255,255,0.2);
+  background: #111;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+
+.ctrl-btn:hover { background: #222; border-color: rgba(255,255,255,0.5); transform: translateY(-1px); }
+.ctrl-btn:disabled { opacity: 0.35; cursor: default; transform: none; }
+.ctrl-btn.primary { background: #c82030; border-color: #c82030; }
+.ctrl-btn.primary:hover { background: #a01826; border-color: #a01826; }
+.ctrl-btn.active { border-color: #c82030; color: #ff6b7a; }
+
+/* ── View switcher ── */
+.view-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  background: rgba(0,0,0,0.8);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.view-bar-title {
+  font-family: "Press Start 2P", monospace;
+  font-size: 10px;
+  color: #c82030;
+  letter-spacing: 0.05em;
+}
+
+.view-tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.phase-tag {
+  font-family: "Press Start 2P", monospace;
+  font-size: 8px;
+  padding: 4px 10px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.7);
+}
+
+/* ── Peek hint overlay ── */
+.peek-hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.7);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 8px;
+  font-family: "Press Start 2P", monospace;
+  color: #ffd700;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10;
+  animation: fadeInOut 2s ease forwards;
+}
+
+@keyframes fadeInOut {
+  0%   { opacity: 0; transform: translate(-50%, -60%); }
+  15%  { opacity: 1; transform: translate(-50%, -50%); }
+  75%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -40%); }
+}
