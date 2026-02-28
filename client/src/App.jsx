@@ -3,6 +3,7 @@ import PokerTable from "./components/PokerTable.jsx";
 import Crowd from "./components/Crowd.jsx";
 import CountryPokerTable from "./venues/CountryPokerTable.jsx";
 import HomePage from "./HomePage.jsx";
+import AgentLab from "./AgentLab.jsx";
 
 // ── Deck helpers ──────────────────────────────────────────────────────────────
 const SUITS = ["♠", "♥", "♦", "♣"];
@@ -514,7 +515,16 @@ export default function App() {
   const isDealerView = view === "dealer";
 
   if (screen === "home") {
-    return <HomePage onPlayOffline={() => setScreen("offline")} />;
+    return (
+      <HomePage
+        onPlayOffline={() => setScreen("offline")}
+        onAgents={() => setScreen("agents")}
+      />
+    );
+  }
+
+  if (screen === "agents") {
+    return <AgentLab onBackHome={() => setScreen("home")} />;
   }
 
   if (screen === "online") {
