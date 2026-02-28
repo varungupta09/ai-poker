@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import PokerTableSimulation from "./components/PokerTableSimulation.jsx";
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
@@ -164,15 +165,6 @@ function Navbar({ onAgents }) {
 // ─── Hero Section ─────────────────────────────────────────────────────────────
 
 function HeroSection({ onPlayOffline }) {
-  const chips = [
-    { top: "15%", left: "5%",  bg: "#dc2626", label: "5" },
-    { top: "70%", left: "8%",  bg: "#1d4ed8", label: "25" },
-    { top: "20%", right: "8%", bg: "#15803d", label: "1" },
-    { top: "65%", right: "5%", bg: "#7c3aed", label: "10" },
-    { top: "45%", left: "2%",  bg: "#d97706", label: "50" },
-    { top: "80%", right: "12%",bg: "#dc2626", label: "5" },
-  ];
-
   return (
     <section className="hp-hero">
       <div className="hp-hero-bg-pattern" />
@@ -215,40 +207,10 @@ function HeroSection({ onPlayOffline }) {
           </div>
         </div>
 
-        {/* Right — decorative poker table */}
+        {/* Right — live simulation */}
         <div className="hp-hero-right">
-          <div style={{ position: "relative" }}>
-            <div className="hp-hero-table-visual">
-              {/* Community cards */}
-              <div style={{ display: "flex", gap: 8 }}>
-                {["A♠", "K♥", "7♦", "3♣", "J♥"].map((c, i) => (
-                  <div key={i} className="hp-mini-card" style={{ animationDelay: `${i * 0.1}s` }}>
-                    <span style={{ color: c.includes("♥") || c.includes("♦") ? "#ef4444" : "white", fontSize: 11, fontWeight: 700 }}>{c}</span>
-                  </div>
-                ))}
-              </div>
-              <div style={{ marginTop: 12, fontSize: 10, color: "rgba(255,255,255,0.4)", fontFamily: "'Press Start 2P', monospace" }}>
-                POT: 2,840
-              </div>
-            </div>
-            {/* Chips orbiting */}
-            <div className="hp-hero-chips">
-              {chips.map((c, i) => (
-                <div
-                  key={i}
-                  className="hp-chip"
-                  style={{
-                    background: c.bg,
-                    top: c.top,
-                    left: c.left,
-                    right: c.right,
-                    animationDelay: `${i * 0.4}s`,
-                  }}
-                >
-                  {c.label}
-                </div>
-              ))}
-            </div>
+          <div className="hp-hero-sim-wrap">
+            <PokerTableSimulation />
           </div>
         </div>
       </div>

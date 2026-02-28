@@ -1176,6 +1176,41 @@ body {
   align-items: center;
 }
 
+/* Scaled-down live simulation in hero */
+.hp-hero-sim-wrap {
+  width: 440px;
+  height: 380px;
+  overflow: hidden;
+  border-radius: 0;
+  position: relative;
+  animation: hp-float 3.5s ease-in-out infinite;
+  box-shadow: none;
+  border: none;
+  flex-shrink: 0;
+  background: transparent;
+}
+/* The pts-wrapper is positioned so only the table shows */
+.hp-hero-sim-wrap .pts-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 860px;
+  transform: scale(0.51);
+  transform-origin: top left;
+  pointer-events: none;
+}
+/* Hide all text — header, ticker, footer */
+.hp-hero-sim-wrap .pts-header,
+.hp-hero-sim-wrap .pts-ticker,
+.hp-hero-sim-wrap .pts-footer {
+  display: none;
+}
+/* Let the table breathe */
+.hp-hero-sim-wrap .pts-table-container {
+  padding: 0;
+  margin: 0;
+}
+
 .hp-hero-table-visual {
   width: 320px;
   height: 185px;
