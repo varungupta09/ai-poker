@@ -11,11 +11,220 @@ body {
   background: #0d0204;
   font-family: "Inter", sans-serif;
   color: #fff;
-  overflow: hidden;
-  height: 100vh;
+  overflow-x: hidden;
+  min-height: 100vh;
 }
 
 #root { height: 100vh; display: flex; flex-direction: column; }
+
+/* ── Landing / marketing shell (matches landing-page vibe) ── */
+.home-shell {
+  position: relative;
+  min-height: 100vh;
+  padding: 28px 32px 48px;
+  background: #0a0a0a;
+  color: #fff;
+  overflow: hidden;
+}
+
+.home-grid-overlay::before,
+.home-grid-overlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.home-grid-overlay::before {
+  background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.07) 1px, transparent 0);
+  background-size: 20px 20px;
+}
+
+.home-grid-overlay::after {
+  background: radial-gradient(ellipse at 70% 40%, rgba(224, 27, 45, 0.15), transparent 55%);
+  filter: blur(18px);
+}
+
+.home-oval {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  transform: translate(-50%, -50%);
+  width: min(900px, 92vw);
+  height: 440px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, #1d6b3a 0%, #145428 55%, #0e3d1e 100%);
+  border: 18px solid #8b5e2a;
+  box-shadow: 0 0 0 4px #a3722e, inset 0 0 60px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.home-header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 8px 24px;
+}
+
+.logo-cluster { display: flex; align-items: center; gap: 12px; }
+.logo-title { margin: 0; font-weight: 700; letter-spacing: 0.02em; }
+.logo-sub { margin: 2px 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.18em; color: rgba(255,255,255,0.6); }
+
+.home-nav { display: flex; gap: 16px; align-items: center; }
+.nav-link {
+  background: transparent;
+  color: rgba(255,255,255,0.8);
+  border: none;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.nav-link:hover { color: #fff; }
+
+.home-hero-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 32px;
+  align-items: center;
+  padding: 16px 8px 0;
+}
+
+.home-hero-block h1 {
+  font-size: clamp(30px, 5vw, 42px);
+  line-height: 1.5;
+  margin: 14px 0 12px;
+}
+
+.home-lede { max-width: 640px; color: rgba(255,255,255,0.7); margin: 0 0 18px; font-size: 15px; line-height: 1.6; }
+
+.home-cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+
+.home-cta {
+  display: inline-block;
+  background: #e01b2d;
+  color: #ffffff;
+  border: 3px solid #ffffff;
+  padding: 12px 24px;
+  font-size: 11px;
+  font-family: "Press Start 2P", monospace;
+  text-transform: uppercase;
+  cursor: pointer;
+  letter-spacing: 0.08em;
+  transition: transform 0.1s, background 0.1s;
+  border-radius: 6px;
+}
+.home-cta.primary:hover { background: #ffffff; color: #e01b2d; transform: translateY(-2px); }
+.home-cta.ghost { background: transparent; border-color: rgba(255,255,255,0.45); color: #ffffff; }
+.home-cta.ghost:hover { border-color: #ffffff; transform: translateY(-2px); }
+
+.home-meta-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.home-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.home-card {
+  background: #111111;
+  border: 2px solid rgba(255,255,255,0.12);
+  border-radius: 14px;
+  padding: 18px 20px;
+  transition: border-color 0.2s, transform 0.15s;
+}
+.home-card:hover { border-color: #e01b2d; transform: translateY(-3px); }
+.home-card h3 { margin: 12px 0 6px; color: #ffffff; font-size: 19px; }
+.home-card p { margin: 0; color: rgba(255,255,255,0.72); font-size: 14px; line-height: 1.5; }
+.home-card-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  text-decoration: none;
+  cursor: default;
+}
+.pill-ghost { background: rgba(224, 27, 45, 0.18); color: #fff; border-color: rgba(255,255,255,0.3); }
+.pill-link { background: transparent; color: #fff; border-color: rgba(255,255,255,0.28); cursor: pointer; }
+.pill-link:hover { background: rgba(255,255,255,0.08); }
+.pill-soft { background: rgba(224, 27, 45, 0.12); color: #e5b9c0; border-color: rgba(224, 27, 45, 0.28); }
+
+.home-topline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(200, 32, 48, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.home-soon {
+  position: relative;
+  z-index: 1;
+  max-width: 720px;
+  margin: 0 auto;
+  background: #111111;
+  border: 2px solid rgba(255,255,255,0.14);
+  border-radius: 18px;
+  padding: 28px 32px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
+}
+.home-soon h2 { margin: 10px 0 8px; color: #ffffff; font-size: 30px; }
+.home-soon p { color: rgba(255,255,255,0.75); margin: 0 0 16px; }
+.home-soon-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+
+.soon-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0 18px; }
+.soon-badge {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px dashed rgba(255,255,255,0.35);
+  color: #fff;
+  font-weight: 600;
+  background: rgba(224, 27, 45, 0.12);
+}
+
+.home-leaderboard { max-width: 760px; margin: 0 auto; position: relative; z-index: 1; }
+
+.leaderboard-rows { display: grid; gap: 12px; margin-top: 14px; }
+.leaderboard-row {
+  display: grid;
+  grid-template-columns: 50px 1fr 100px;
+  gap: 12px;
+  align-items: center;
+  background: #0f0f0f;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.18), rgba(255,255,255,0.08));
+  background-size: 200% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+  border-radius: 8px;
+  height: 14px;
+}
+.skeleton.rank { width: 32px; height: 20px; text-align: center; line-height: 20px; color: #e01b2d; font-weight: 800; background: rgba(224, 27, 45, 0.12); }
+.skeleton.name { height: 12px; }
+.skeleton.chips { width: 70px; height: 12px; justify-self: end; }
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
 
 /* ── Venue / crowd container ── */
 .venue {
@@ -31,7 +240,7 @@ body {
 
 /* Spotlight cone that highlights the table center */
 .venue-spotlight {
-  position: absolute;
+  z-index: 2;
   inset: 0;
   pointer-events: none;
   background:
@@ -327,4 +536,505 @@ body {
   15%  { opacity: 1; transform: translate(-50%, -50%); }
   75%  { opacity: 1; }
   100% { opacity: 0; transform: translate(-50%, -40%); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   VENUE: Country Poker Table — Golden Hour Sunset
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Wrapper ── */
+.cv-wrap {
+  position: relative;
+  flex: 1;
+  width: 100vw;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #0b0604;
+}
+
+/* ── Sky — sunset gradient from warm gold at horizon to deep blue-violet up top ── */
+.cv-sky {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    #1a0a2e  0%,   /* deep violet-blue zenith */
+    #2d1050  6%,
+    #5b1a6e  14%,  /* purple */
+    #9b2060  24%,  /* magenta-red */
+    #cc3d30  36%,  /* burnt orange-red */
+    #e8621a  50%,  /* orange */
+    #f5941a  62%,  /* amber */
+    #f9c435  73%,  /* gold at horizon */
+    #fde38a  82%,  /* pale yellow just above horizon */
+    #ffe0a0  90%,  /* warm cream at horizon line */
+    #c97832  100%  /* earthy tone blending into ground */
+  );
+  z-index: 0;
+}
+
+/* ── Sun disc ── */
+.cv-sun {
+  position: absolute;
+  /* sits just above the horizon, centered */
+  left: 50%;
+  top: 54%;
+  width: 80px;
+  height: 80px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    #fff8d0 0%,
+    #ffe566 30%,
+    #ffb61a 60%,
+    rgba(255, 140, 20, 0) 100%
+  );
+  box-shadow:
+    0 0 40px 20px rgba(255, 200, 60, 0.55),
+    0 0 100px 60px rgba(255, 140, 20, 0.25),
+    0 0 200px 120px rgba(240, 90, 10, 0.12);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* ── Sun rays — soft radiating streaks ── */
+.cv-sun-rays {
+  position: absolute;
+  left: 50%;
+  top: 54%;
+  width: 500px;
+  height: 500px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(255,210,80,0.00)  0deg,
+    rgba(255,210,80,0.06)  6deg,
+    rgba(255,210,80,0.00)  12deg,
+    rgba(255,210,80,0.00)  24deg,
+    rgba(255,210,80,0.05)  30deg,
+    rgba(255,210,80,0.00)  36deg,
+    rgba(255,210,80,0.00)  54deg,
+    rgba(255,210,80,0.07)  60deg,
+    rgba(255,210,80,0.00)  66deg,
+    rgba(255,210,80,0.00)  90deg,
+    rgba(255,210,80,0.04)  96deg,
+    rgba(255,210,80,0.00)  102deg,
+    rgba(255,210,80,0.00)  126deg,
+    rgba(255,210,80,0.06)  132deg,
+    rgba(255,210,80,0.00)  138deg,
+    rgba(255,210,80,0.00)  168deg,
+    rgba(255,210,80,0.05)  174deg,
+    rgba(255,210,80,0.00)  180deg,
+    rgba(255,210,80,0.00)  210deg,
+    rgba(255,210,80,0.04)  216deg,
+    rgba(255,210,80,0.00)  222deg,
+    rgba(255,210,80,0.00)  252deg,
+    rgba(255,210,80,0.06)  258deg,
+    rgba(255,210,80,0.00)  264deg,
+    rgba(255,210,80,0.00)  300deg,
+    rgba(255,210,80,0.05)  306deg,
+    rgba(255,210,80,0.00)  312deg,
+    rgba(255,210,80,0.00)  348deg,
+    rgba(255,210,80,0.04)  354deg,
+    rgba(255,210,80,0.00)  360deg
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Horizon colour bloom ── */
+.cv-horizon {
+  position: absolute;
+  left: 0; right: 0;
+  /* positioned at the horizon line */
+  top: 52%;
+  height: 22%;
+  pointer-events: none;
+  background: radial-gradient(ellipse 90% 100% at 50% 0%,
+    rgba(255, 200, 60, 0.50) 0%,
+    rgba(255, 110, 20, 0.25) 40%,
+    transparent 75%
+  );
+  z-index: 2;
+}
+
+/* ── Far hills — dark purple silhouette ── */
+.cv-hills-far {
+  position: absolute;
+  bottom: 28%;
+  left: 0; right: 0;
+  height: 22%;
+  pointer-events: none;
+  background:
+    /* right hill */
+    radial-gradient(ellipse 55% 100% at 75% 100%, #2a0d40 0%, transparent 70%),
+    /* left hill */
+    radial-gradient(ellipse 60% 100% at 28% 100%, #1e0830 0%, transparent 65%),
+    /* center dip fill */
+    radial-gradient(ellipse 40% 60%  at 50% 100%, #250a38 0%, transparent 80%);
+  z-index: 3;
+}
+
+/* ── Near hills — warmer, darker, in front ── */
+.cv-hills-near {
+  position: absolute;
+  bottom: 18%;
+  left: 0; right: 0;
+  height: 20%;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 45% 100% at 18% 100%, #1a0c06 0%, transparent 70%),
+    radial-gradient(ellipse 50% 100% at 50% 110%, #150903 0%, transparent 65%),
+    radial-gradient(ellipse 45% 100% at 82% 100%, #1a0c06 0%, transparent 68%);
+  z-index: 4;
+}
+
+/* ── Tree silhouettes (parallax) ── */
+.cv-trees-far {
+  position: absolute;
+  bottom: 18%;
+  left: 0; right: 0;
+  height: 40%;
+  pointer-events: none;
+  z-index: 5;
+  /* scattered trunks + canopies */
+  background-image:
+    radial-gradient(90px 58px at 6% 80%,  rgba(12, 5, 2, 0.98) 0%, transparent 74%),
+    radial-gradient(92px 60px at 16% 78%, rgba(12, 5, 2, 0.99) 0%, transparent 76%),
+    radial-gradient(86px 56px at 28% 82%, rgba(11, 4, 2, 0.99) 0%, transparent 74%),
+    radial-gradient(96px 60px at 41% 79%, rgba(10, 4, 1, 1.0) 0%, transparent 76%),
+    radial-gradient(104px 62px at 55% 81%, rgba(10, 4, 1, 1.0) 0%, transparent 78%),
+    radial-gradient(94px 58px at 67% 80%, rgba(11, 4, 2, 0.99) 0%, transparent 76%),
+    radial-gradient(102px 60px at 79% 78%, rgba(10, 4, 1, 1.0) 0%, transparent 76%),
+    radial-gradient(106px 60px at 92% 81%, rgba(10, 4, 1, 1.0) 0%, transparent 76%),
+    /* thin trunks underneath */
+    linear-gradient(90deg,
+      transparent 0%,
+      rgba(12, 5, 2, 0.0) 2%,
+      rgba(12, 5, 2, 0.9) 2.7%,
+      rgba(12, 5, 2, 0.9) 3.4%,
+      transparent 4%,
+      transparent 12%),
+    linear-gradient(180deg, rgba(10,4,1,0.85) 0%, rgba(10,4,1,0.0) 85%),
+    linear-gradient(180deg, rgba(6,2,1,0.45) 0%, rgba(6,2,1,0) 100%)
+  ;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  opacity: 0.98;
+  mix-blend-mode: normal;
+}
+
+.cv-trees-near {
+  position: absolute;
+  bottom: 8%;
+  left: 0; right: 0;
+  height: 48%;
+  pointer-events: none;
+  z-index: 6;
+  background-image:
+    radial-gradient(140px 78px at 8% 88%,   rgba(6, 2, 1, 1.0) 0%, transparent 74%),
+    radial-gradient(156px 86px at 22% 86%,  rgba(5, 2, 1, 1.0) 0%, transparent 76%),
+    radial-gradient(130px 74px at 37% 90%,  rgba(6, 2, 1, 1.0) 0%, transparent 74%),
+    radial-gradient(180px 100px at 54% 87%, rgba(5, 2, 1, 1.0) 0%, transparent 76%),
+    radial-gradient(140px 82px at 70% 89%,  rgba(5, 2, 1, 1.0) 0%, transparent 76%),
+    radial-gradient(170px 92px at 84% 86%, rgba(5, 2, 1, 1.0) 0%, transparent 76%),
+    radial-gradient(150px 86px at 95% 88%,  rgba(5, 2, 1, 1.0) 0%, transparent 76%),
+    /* denser trunks */
+    linear-gradient(90deg,
+      transparent 0%,
+      rgba(12, 5, 2, 0.0) 1.5%,
+      rgba(6, 2, 1, 1.0) 2.4%,
+      rgba(6, 2, 1, 1.0) 3.2%,
+      transparent 4%,
+      transparent 9%);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 -4px 28px rgba(0,0,0,0.9));
+  opacity: 1;
+  mix-blend-mode: normal;
+}
+
+/* ── Foreground edge silhouettes for first-person feel ── */
+.cv-foreground-edge {
+  position: absolute;
+  bottom: 0;
+  left: -4%;
+  right: -4%;
+  height: 36%;
+  pointer-events: none;
+  z-index: 7;
+  background:
+    radial-gradient(80% 140% at -5% 100%, rgba(10, 4, 1, 0.9) 0%, transparent 65%),
+    radial-gradient(80% 140% at 105% 100%, rgba(10, 4, 1, 0.9) 0%, transparent 65%),
+    radial-gradient(120% 120% at 50% 120%, rgba(8, 3, 1, 0.85) 0%, transparent 75%);
+}
+
+/* ── Ground — dry grass / dirt ── */
+.cv-ground {
+  position: absolute;
+  bottom: 0;
+  left: 0; right: 0;
+  height: 22%;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    #2b1505 0%,
+    #3a1e08 30%,
+    #452312 60%,
+    #3a1a06 100%
+  );
+  /* subtle soil texture */
+  background-image:
+    repeating-linear-gradient(
+      88deg,
+      rgba(255,180,60,0.03) 0px,
+      rgba(255,180,60,0.03) 1px,
+      transparent 1px,
+      transparent 18px
+    ),
+    linear-gradient(180deg, #2b1505 0%, #3a1a06 100%);
+  z-index: 3;
+}
+
+/* ── Fence line (simple posts) ── */
+.cv-fence {
+  position: absolute;
+  bottom: 14%;
+  left: 0; right: 0;
+  height: 12%;
+  pointer-events: none;
+  z-index: 6;
+  background-image:
+    /* posts */
+    repeating-linear-gradient(
+      90deg,
+      rgba(28,12,4,0.9) 0px,
+      rgba(28,12,4,0.9) 6px,
+      transparent 6px,
+      transparent 22px
+    ),
+    /* rails */
+    linear-gradient(
+      180deg,
+      transparent 0%,
+      transparent 25%,
+      rgba(28,12,4,0.8) 25%,
+      rgba(28,12,4,0.8) 35%,
+      transparent 35%,
+      transparent 55%,
+      rgba(28,12,4,0.8) 55%,
+      rgba(28,12,4,0.8) 65%,
+      transparent 65%,
+      transparent 100%
+    );
+  filter: drop-shadow(0 -2px 8px rgba(0,0,0,0.7));
+}
+
+/* ── Atmospheric haze — warm golden mist over horizon ── */
+.cv-haze {
+  position: absolute;
+  left: 0; right: 0;
+  top: 48%;
+  height: 18%;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(255, 175, 60, 0.12) 40%,
+    rgba(200, 100, 20, 0.18) 65%,
+    transparent 100%
+  );
+  z-index: 2;
+}
+
+/* ── Vignette — keep edges dark so table pops ── */
+.cv-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 75% 65% at 50% 50%,
+    transparent 30%,
+    rgba(5, 2, 0, 0.45) 70%,
+    rgba(4, 1, 0, 0.80) 100%
+  );
+  z-index: 7;
+}
+
+/* ── Scene wrapper ── */
+.cv-scene {
+  perspective: 1000px;
+  perspective-origin: 50% 85%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 8;
+}
+
+.cv-table-wrap {
+  transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+/* ── Wooden table ── */
+.cv-table {
+  position: relative;
+  width: 720px;
+  height: 420px;
+}
+
+/* The actual wood surface — oval, with layered warm oak tones */
+.cv-table::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  /* multi-stop radial for depth: lighter in center, darker rim */
+  background: radial-gradient(ellipse at 50% 38%,
+    #b06a2c 0%,
+    #8a4e1f 20%,
+    #6b3a16 42%,
+    #4e2a0f 62%,
+    #2f1808 82%,
+    #1c0e05 100%
+  );
+  /* slimmer but pronounced rail */
+  border: 18px solid #1a0d05;
+  box-shadow:
+    0 0 0 2px #5a310e,
+    0 0 0 5px #2b1709,
+    0 14px 54px rgba(0,0,0,0.85),
+    0 5px 18px rgba(0,0,0,0.65),
+    inset 0 2px 10px rgba(255,200,120,0.12);
+}
+
+/* Wood grain streaks on the surface */
+.cv-grain {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  /* repeating angled grain lines */
+  background-image:
+    repeating-linear-gradient(
+      8deg,
+      rgba(255, 210, 130, 0.07) 0px,
+      rgba(255, 210, 130, 0.07) 1px,
+      transparent 1px,
+      transparent 9px
+    ),
+    repeating-linear-gradient(
+      8deg,
+      rgba(60, 20, 5, 0.10) 0px,
+      rgba(60, 20, 5, 0.10) 1px,
+      transparent 1px,
+      transparent 22px
+    );
+  /* clip to the oval */
+  clip-path: ellipse(50% 50% at 50% 50%);
+  z-index: 1;
+}
+
+/* ── Felt inset — sits recessed inside the wood ── */
+.cv-felt {
+  position: absolute;
+  /* inset from the outer edge to sit inside the rail */
+  inset: 36px;
+  border-radius: 46%;
+  /* canvas runner instead of bright felt */
+  background:
+    linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0.12) 100%),
+    radial-gradient(ellipse at center,
+      #3d2a1b 0%,
+      #2d1f14 55%,
+      #20150f 100%);
+  box-shadow:
+    inset 0 0 32px rgba(0,0,0,0.6),
+    inset 0 0 10px rgba(0,0,0,0.35);
+  border: 2px solid rgba(40, 25, 15, 0.8);
+}
+
+.cv-felt-inner {
+  position: absolute;
+  inset: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  pointer-events: none;
+}
+
+/* ── Community cards strip ── */
+.cv-community {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ── Pot label ── */
+.cv-pot {
+  position: absolute;
+  top: calc(50% + 50px);
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 9px;
+  font-family: "Press Start 2P", monospace;
+  color: rgba(255, 220, 120, 0.75);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+}
+
+/* ── Dealer button ── */
+.cv-dealer-btn-wrap {
+  position: absolute;
+  left: calc(50% + 30px);
+  top: calc(12% + 10px);
+  transform: translate(-50%, -50%);
+}
+.cv-dealer-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 35%, #fff8e0, #e8d080);
+  color: #2a1405;
+  font-size: 7px;
+  font-weight: 900;
+  display: grid;
+  place-items: center;
+  border: 2px solid #b8901e;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.55), inset 0 1px 1px rgba(255,255,240,0.6);
+}
+
+/* ── Table drop shadow (bottom edge depth) ── */
+.cv-table-shadow {
+  position: absolute;
+  bottom: -30px;
+  left: 10%;
+  right: 10%;
+  height: 30px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center,
+    rgba(0,0,0,0.55) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+/* ── Venue corner label ── */
+.cv-label {
+  position: absolute;
+  bottom: 14px;
+  right: 18px;
+  font-family: "Press Start 2P", monospace;
+  font-size: 8px;
+  color: rgba(255, 210, 100, 0.30);
+  letter-spacing: 0.1em;
+  z-index: 10;
+  pointer-events: none;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.7);
 }

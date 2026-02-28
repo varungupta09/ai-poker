@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import PokerTable from "./components/PokerTable.jsx";
 import Crowd from "./components/Crowd.jsx";
+import CountryPokerTable from "./venues/CountryPokerTable.jsx";
 
 // ── Deck helpers ──────────────────────────────────────────────────────────────
 const SUITS = ["♠", "♥", "♦", "♣"];
@@ -33,9 +34,151 @@ const INITIAL_PLAYERS = [
 
 const PHASES = ["waiting", "preflop", "flop", "turn", "river", "showdown"];
 
+// ── Landing blocks ──────────────────────────────────────────────────────────
+function LandingCard({ title, label, description, action, onAction }) {
+  return (
+    <div className="home-card">
+      <div className="home-card-head">
+        <span className="pill pill-ghost">{label}</span>
+        {action ? (
+          <button className="pill pill-link" onClick={onAction}>{action}</button>
+        ) : null}
+      </div>
+      <h3>{title}</h3>
+      <p>{description}</p>
+    </div>
+  );
+}
+
+function LandingScreen({ onSelect }) {
+  return (
+    <div className="home-shell">
+      <div className="home-grid-overlay" />
+      <div className="home-oval" />
+
+      <header className="home-header">
+        <div className="logo-cluster">
+          <div className="logo-badge"><span className="logo-letter">P</span></div>
+          <div>
+            <p className="logo-title">PokerAI</p>
+            <p className="logo-sub">Agents Arena</p>
+          </div>
+        </div>
+        <nav className="home-nav">
+          <button className="nav-link" onClick={() => onSelect("offline")}>Arena</button>
+          <button className="nav-link" onClick={() => onSelect("leaderboards")}>Ladder</button>
+          <button className="nav-link" onClick={() => onSelect("online")}>Start</button>
+        </nav>
+        <button className="home-cta primary" onClick={() => onSelect("online")}>
+          Join beta
+        </button>
+      </header>
+
+      <main className="home-hero-grid">
+        <div className="home-hero-block">
+          <div className="badge">Classic Poker League</div>
+          <h1 className="arcade">
+            PokerAI
+            <span className="gradient-text"> where code plays for keeps</span>
+          </h1>
+          <p className="home-lede">
+            Build a poker agent or sit in yourself. Fire up instant offline tables, peek at the coming online lobby, and watch the ladder take shape.
+          </p>
+          <div className="home-cta-row">
+            <button className="home-cta primary" onClick={() => onSelect("offline")}>
+              Play offline
+            </button>
+            <button className="home-cta ghost" onClick={() => onSelect("online")}>
+              Play online
+            </button>
+          </div>
+          <div className="home-meta-row">
+            <span className="pill pill-soft">Instant deals</span>
+            <span className="pill pill-soft">Local sim</span>
+            <span className="pill pill-soft">Leaderboard brewing</span>
+          </div>
+        </div>
+
+        <div className="home-options">
+          <LandingCard
+            title="Play online"
+            label="Live soon"
+            description="Join live rooms with friends and bots. We are wiring up the lobby now."
+            action="Notify me"
+            onAction={() => onSelect("online")}
+          />
+          <LandingCard
+            title="Play offline"
+            label="Solo sandbox"
+            description="Instantly jump into the animated table and practice reads with AI dealers."
+            action="Enter table"
+            onAction={() => onSelect("offline")}
+          />
+          <LandingCard
+            title="Leaderboards"
+            label="Coming soon"
+            description="Track streaks, biggest pots, and late-night heaters."
+            action="Preview"
+            onAction={() => onSelect("leaderboards")}
+          />
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function ComingSoonScreen({ title, eyebrow, onBack, body }) {
+  return (
+    <div className="home-shell">
+      <div className="home-glow" />
+      <div className="home-soon">
+        <div className="home-soon-head">
+          <button className="pill pill-link" onClick={onBack}>← Back</button>
+          <span className="pill pill-ghost">{eyebrow}</span>
+        </div>
+        <h2>{title}</h2>
+        <p>{body}</p>
+        <div className="soon-row">
+          <div className="soon-badge">Red & white lobby</div>
+          <div className="soon-badge">Matchmaking</div>
+          <div className="soon-badge">Tables in QA</div>
+        </div>
+        <button className="home-cta primary" onClick={onBack}>Return home</button>
+      </div>
+    </div>
+  );
+}
+
+function LeaderboardScreen({ onBack }) {
+  return (
+    <div className="home-shell">
+      <div className="home-glow" />
+      <div className="home-leaderboard">
+        <div className="home-soon-head">
+          <button className="pill pill-link" onClick={onBack}>← Back</button>
+          <span className="pill pill-ghost">Leaderboards</span>
+        </div>
+        <h2>Leaderboard coming soon</h2>
+        <p>We are still wiring up the telemetry. Expect streaks, MTT highs, and brag-worthy pots.</p>
+        <div className="leaderboard-rows">
+          {Array.from({ length: 5 }).map((_, idx) => (
+            <div key={idx} className="leaderboard-row">
+              <div className="skeleton rank">{idx + 1}</div>
+              <div className="skeleton name" />
+              <div className="skeleton chips" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── App ───────────────────────────────────────────────────────────────────────
 export default function App() {
+  const [screen, setScreen]         = useState("home"); // "home" | "online" | "offline" | "leaderboards"
   const [view, setView]             = useState("player");
+  const [venue, setVenue]           = useState("arena"); // "arena" | "country"
   const [phase, setPhase]           = useState("waiting");
   const [players, setPlayers]       = useState(INITIAL_PLAYERS);
   const [community, setCommunity]   = useState([]);
@@ -107,12 +250,43 @@ export default function App() {
     setPeekHint(false);
   };
 
+  const goHome = () => {
+    reset();
+    setScreen("home");
+  };
+
   const phaseLabel = phase.toUpperCase();
   const canAdvance  = phase !== "waiting" && phase !== "showdown";
   const isDealerView = view === "dealer";
 
+  if (screen === "home") {
+    return <LandingScreen onSelect={setScreen} />;
+  }
+
+  if (screen === "online") {
+    return (
+      <ComingSoonScreen
+        title="Online play is almost here"
+        eyebrow="Play online"
+        onBack={goHome}
+        body="Invite friends, sit at private tables, and co-play with AI helpers. The lobby is opening soon."
+      />
+    );
+  }
+
+  if (screen === "leaderboards") {
+    return <LeaderboardScreen onBack={goHome} />;
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
+
+      {/* ── Navigation back to landing ───────────────────────────── */}
+      <div className="home-topline">
+        <button className="pill pill-link" onClick={goHome}>← Home</button>
+        <div className="pill pill-ghost">Offline sandbox</div>
+        <div className="pill pill-soft">Local only</div>
+      </div>
 
       {/* ── Top bar ─────────────────────────────────────────────────────── */}
       <div className="view-bar">
@@ -136,14 +310,42 @@ export default function App() {
           ))}
         </div>
 
+        {/* Venue tabs */}
+        <div className="view-tabs" style={{ marginLeft: 16, borderLeft: "1px solid rgba(255,255,255,0.12)", paddingLeft: 16 }}>
+          {[
+            { key: "arena",   label: "🏟 Arena" },
+            { key: "country", label: "🌾 Country" },
+          ].map(({ key, label }) => (
+            <button
+              key={key}
+              className={`ctrl-btn ${venue === key ? "active" : ""}`}
+              style={{ fontSize: 8 }}
+              onClick={() => setVenue(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         <span className="phase-tag">{phaseLabel}</span>
       </div>
 
       {/* ── Table + Crowd ────────────────────────────────────────────── */}
-      <div className="venue">
-        <Crowd trigger={crowdTrigger} />
-        <div className="venue-spotlight" />
-        <PokerTable
+      {venue === "arena" ? (
+        <div className="venue">
+          <Crowd trigger={crowdTrigger} />
+          <div className="venue-spotlight" />
+          <PokerTable
+            view={view}
+            players={players}
+            community={community}
+            dealerPeeking={dealerPeeking}
+            pot={pot}
+            peekHint={peekHint}
+          />
+        </div>
+      ) : (
+        <CountryPokerTable
           view={view}
           players={players}
           community={community}
@@ -151,7 +353,7 @@ export default function App() {
           pot={pot}
           peekHint={peekHint}
         />
-      </div>
+      )}
 
       {/* ── Controls ────────────────────────────────────────────────────── */}
       <div className="controls">
