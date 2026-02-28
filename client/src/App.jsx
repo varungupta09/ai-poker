@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import PokerTable from "./components/PokerTable.jsx";
 import Crowd from "./components/Crowd.jsx";
 import CountryPokerTable from "./venues/CountryPokerTable.jsx";
+import HomePage from "./HomePage.jsx";
 
 // ── Deck helpers ──────────────────────────────────────────────────────────────
 const SUITS = ["♠", "♥", "♦", "♣"];
@@ -431,7 +432,7 @@ function LeaderboardScreen({ onBack }) {
 export default function App() {
   const [screen, setScreen]         = useState("home"); // "home" | "online" | "offline" | "leaderboards"
   const [view, setView]             = useState("player");
-  const [venue, setVenue]           = useState("arena"); // "arena" | "country"
+  const [venue, setVenue]           = useState("country"); // "arena" | "country"
   const [phase, setPhase]           = useState("waiting");
   const [players, setPlayers]       = useState(INITIAL_PLAYERS);
   const [community, setCommunity]   = useState([]);
@@ -513,7 +514,7 @@ export default function App() {
   const isDealerView = view === "dealer";
 
   if (screen === "home") {
-    return <LandingScreen onSelect={setScreen} />;
+    return <HomePage onPlayOffline={() => setScreen("offline")} />;
   }
 
   if (screen === "online") {
