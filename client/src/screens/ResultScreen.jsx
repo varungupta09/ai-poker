@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { activeAgent } from "../mocks/mockAgents.js";
 import { mockResultStats } from "../mocks/mockAgents.js";
+import { recordMatchResult } from "../state/mockStore.js";
 
 // ─── Animated Counter ─────────────────────────────────────────────────────────
 
@@ -162,9 +163,38 @@ export default function ResultScreen({ setScreen, setScreenParams, screenParams 
   const eloDelta = stats.eloDelta;
 
   const [mounted, setMounted] = useState(false);
+  const recordedRef = useRef(false);
+
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 50);
     return () => clearTimeout(t);
+  }, []);
+
+  // Record match result exactly once when this screen mounts
+  useEffect(() => {
+    if (recordedRef.current) return;
+    recordedRef.current = true;
+    const matchId = screenParams?.matchId || ("match-" + Math.random().toString(36).slice(2, 9));
+    // opponent is defined at the top of this scope, before hooks
+    const opponentInfo = opponent || { name: "AggroBot", id: "aggrobot" };
+    recordMatchResult({
+      matchId,
+      opponentName: opponentInfo?.name || "AggroBot",
+      opponentId:   opponentInfo?.id   || "aggrobot",
+      outcome:      isWinner ? "win" : "loss",
+      eloDelta:     stats.eloDelta,
+      timestamp:    Date.now(),
+      stats: {
+        handsPlayed: stats.handsPlayed,
+        handsWon:    stats.handsWon,
+        vpip:        stats.vpip,
+        aggression:  stats.aggression,
+        avgPot:      stats.avgPot,
+        biggestPot:  stats.biggestPot,
+      },
+      replayRef: matchId,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const agentB = opponent || { name: "AggroBot", avatar: "AB", color: "#d97706", style: "Aggressive" };
@@ -179,6 +209,14 @@ export default function ResultScreen({ setScreen, setScreenParams, screenParams 
 
   function handleAgentLab() {
     setScreen("agents");
+  }
+
+  function handleLeaderboard() {
+    setScreen("leaderboard");
+  }
+
+  function handleHistory() {
+    setScreen("history");
   }
 
   return (
@@ -213,8 +251,24 @@ export default function ResultScreen({ setScreen, setScreenParams, screenParams 
           }}
         >← Agent Lab</button>
         <span style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 7, color: "rgba(255,255,255,0.25)" }}>/</span>
-        <span style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 8, color: "rgba(255,255,255,0.5)" }}>Match</span>
-        <span style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 7, color: "rgba(255,255,255,0.25)" }}>/</span>
+        <span style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 8, color: "rgba(255,255,255,0.5)" }}>Match</span>        <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+          <button
+            onClick={handleHistory}
+            style={{
+              fontFamily: '"Press Start 2P", monospace', fontSize: 7,
+              background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)",
+              color: "rgba(255,255,255,0.6)", borderRadius: 6, padding: "6px 12px", cursor: "pointer",
+            }}
+          >History</button>
+          <button
+            onClick={handleLeaderboard}
+            style={{
+              fontFamily: '"Press Start 2P", monospace', fontSize: 7,
+              background: "rgba(224,27,45,0.08)", border: "1px solid rgba(224,27,45,0.25)",
+              color: "#e01b2d", borderRadius: 6, padding: "6px 12px", cursor: "pointer",
+            }}
+          >Leaderboard</button>
+        </div>        <span style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 7, color: "rgba(255,255,255,0.25)" }}>/</span>
         <span style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 8, color: isWinner ? "#10b981" : "#e01b2d" }}>Result</span>
       </div>
 
@@ -424,6 +478,40 @@ export default function ResultScreen({ setScreen, setScreenParams, screenParams 
             onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 0 32px rgba(224,27,45,0.55)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 0 20px rgba(224,27,45,0.35)"; e.currentTarget.style.transform = "translateY(0)"; }}
           >← Back to Agent Lab</button>
+
+          <button
+            onClick={handleLeaderboard}
+            style={{
+              fontFamily: '"Press Start 2P", monospace',
+              fontSize: 9,
+              background: "rgba(255,255,255,0.04)",
+              color: "rgba(255,255,255,0.55)",
+              border: "1.5px solid rgba(255,255,255,0.1)",
+              borderRadius: 10,
+              padding: "13px 22px",
+              cursor: "pointer",
+              transition: "all 0.15s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.09)"; e.currentTarget.style.color = "#fff"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = "rgba(255,255,255,0.55)"; }}
+          >📊 Leaderboard</button>
+
+          <button
+            onClick={handleHistory}
+            style={{
+              fontFamily: '"Press Start 2P", monospace',
+              fontSize: 9,
+              background: "rgba(255,255,255,0.04)",
+              color: "rgba(255,255,255,0.55)",
+              border: "1.5px solid rgba(255,255,255,0.1)",
+              borderRadius: 10,
+              padding: "13px 22px",
+              cursor: "pointer",
+              transition: "all 0.15s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.09)"; e.currentTarget.style.color = "#fff"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = "rgba(255,255,255,0.55)"; }}
+          >📜 Match History</button>
         </div>
       </div>
     </div>

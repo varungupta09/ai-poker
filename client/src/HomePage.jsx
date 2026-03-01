@@ -43,7 +43,14 @@ const STORE_TABS = ["All", "Table Skins", "Chip Styles", "Avatars"];
 
 // ─── Navbar ──────────────────────────────────────────────────────────────────
 
-function Navbar({ onAgents }) {
+const NAV_LINK_MAP = {
+  Play:        "offline",
+  Watch:       "offline",
+  Tournaments: "leaderboard",
+  Leaderboard: "leaderboard",
+};
+
+function Navbar({ onAgents, onNavigate }) {
   const [storeOpen, setStoreOpen] = useState(false);
   const [storeTab, setStoreTab] = useState("All");
   const storeRef = useRef(null);
@@ -82,7 +89,11 @@ function Navbar({ onAgents }) {
 
       <div className="hp-nav-links">
         {NAV_LINKS.map((link) => (
-          <button key={link} className="hp-nav-link">{link}</button>
+          <button
+            key={link}
+            className="hp-nav-link"
+            onClick={() => onNavigate?.(NAV_LINK_MAP[link])}
+          >{link}</button>
         ))}
         <button className="hp-nav-link" onClick={onAgents}>Agents</button>
 
@@ -421,10 +432,10 @@ function Footer() {
 
 // ─── Main Export ──────────────────────────────────────────────────────────────
 
-export default function HomePage({ onPlayOffline, onAgents }) {
+export default function HomePage({ onPlayOffline, onAgents, onNavigate }) {
   return (
     <div className="hp-shell">
-      <Navbar onAgents={onAgents} />
+      <Navbar onAgents={onAgents} onNavigate={onNavigate} />
       <HeroSection onPlayOffline={onPlayOffline} />
 
       <hr className="hp-section-divider" />

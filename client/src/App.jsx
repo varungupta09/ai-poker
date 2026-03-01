@@ -8,6 +8,8 @@ import PlayScreen from "./screens/PlayScreen.jsx";
 import QueueScreen from "./screens/QueueScreen.jsx";
 import MatchScreen from "./screens/MatchScreen.jsx";
 import ResultScreen from "./screens/ResultScreen.jsx";
+import LeaderboardScreen from "./screens/LeaderboardScreen.jsx";
+import HistoryScreen from "./screens/HistoryScreen.jsx";
 
 // ── Deck helpers ──────────────────────────────────────────────────────────────
 const SUITS = ["♠", "♥", "♦", "♣"];
@@ -289,7 +291,8 @@ function LandingScreen({ onSelect }) {
         </div>
         <nav className="home-nav">
           <button className="nav-link" onClick={() => onSelect("offline")}>Arena</button>
-          <button className="nav-link" onClick={() => onSelect("leaderboards")}>Ladder</button>
+          <button className="nav-link" onClick={() => onSelect("leaderboard")}>Ladder</button>
+          <button className="nav-link" onClick={() => onSelect("history")}>History</button>
           <button className="nav-link" onClick={() => onSelect("online")}>Start</button>
         </nav>
         <button className="home-cta primary" onClick={() => onSelect("online")}>
@@ -408,7 +411,7 @@ function ComingSoonScreen({ title, eyebrow, onBack, body }) {
   );
 }
 
-function LeaderboardScreen({ onBack }) {
+function LegacyLeaderboardScreen({ onBack }) {
   return (
     <div className="home-shell">
       <div className="home-glow" />
@@ -524,6 +527,7 @@ export default function App() {
       <HomePage
         onPlayOffline={() => setScreen("offline")}
         onAgents={() => setScreen("agents")}
+        onNavigate={(s) => setScreen(s)}
       />
     );
   }
@@ -571,6 +575,24 @@ export default function App() {
     );
   }
 
+  if (screen === "leaderboard") {
+    return (
+      <LeaderboardScreen
+        setScreen={setScreen}
+        setScreenParams={setScreenParams}
+      />
+    );
+  }
+
+  if (screen === "history") {
+    return (
+      <HistoryScreen
+        setScreen={setScreen}
+        setScreenParams={setScreenParams}
+      />
+    );
+  }
+
   if (screen === "online") {
     return (
       <ComingSoonScreen
@@ -583,7 +605,7 @@ export default function App() {
   }
 
   if (screen === "leaderboards") {
-    return <LeaderboardScreen onBack={goHome} />;
+    return <LegacyLeaderboardScreen onBack={goHome} />;
   }
 
   return (
