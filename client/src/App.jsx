@@ -4,6 +4,10 @@ import Crowd from "./components/Crowd.jsx";
 import CountryPokerTable from "./venues/CountryPokerTable.jsx";
 import HomePage from "./HomePage.jsx";
 import AgentLab from "./AgentLab.jsx";
+import PlayScreen from "./screens/PlayScreen.jsx";
+import QueueScreen from "./screens/QueueScreen.jsx";
+import MatchScreen from "./screens/MatchScreen.jsx";
+import ResultScreen from "./screens/ResultScreen.jsx";
 
 // ── Deck helpers ──────────────────────────────────────────────────────────────
 const SUITS = ["♠", "♥", "♦", "♣"];
@@ -431,7 +435,8 @@ function LeaderboardScreen({ onBack }) {
 
 // ── App ───────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [screen, setScreen]         = useState("home"); // "home" | "online" | "offline" | "leaderboards"
+  const [screen, setScreen]         = useState("home"); // "home" | "online" | "offline" | "leaderboards" | "play" | "queue" | "match" | "result"
+  const [screenParams, setScreenParams] = useState({});
   const [view, setView]             = useState("player");
   const [venue, setVenue]           = useState("country"); // "arena" | "country"
   const [phase, setPhase]           = useState("waiting");
@@ -524,7 +529,46 @@ export default function App() {
   }
 
   if (screen === "agents") {
-    return <AgentLab onBackHome={() => setScreen("home")} />;
+    return <AgentLab onBackHome={() => setScreen("home")} onTestAgent={() => setScreen("play")} />;
+  }
+
+  if (screen === "play") {
+    return (
+      <PlayScreen
+        setScreen={setScreen}
+        setScreenParams={setScreenParams}
+        onBack={() => setScreen("agents")}
+      />
+    );
+  }
+
+  if (screen === "queue") {
+    return (
+      <QueueScreen
+        setScreen={setScreen}
+        screenParams={screenParams}
+      />
+    );
+  }
+
+  if (screen === "match") {
+    return (
+      <MatchScreen
+        setScreen={setScreen}
+        setScreenParams={setScreenParams}
+        screenParams={screenParams}
+      />
+    );
+  }
+
+  if (screen === "result") {
+    return (
+      <ResultScreen
+        setScreen={setScreen}
+        setScreenParams={setScreenParams}
+        screenParams={screenParams}
+      />
+    );
   }
 
   if (screen === "online") {

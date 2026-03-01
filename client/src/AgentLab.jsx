@@ -471,7 +471,7 @@ function AgentSidebar({ agent, colorIdx, onSetActive }) {
 
 // ─── Stats Panel ──────────────────────────────────────────────────────────────
 
-function AgentStatsPanel({ agent }) {
+function AgentStatsPanel({ agent, onTestAgent }) {
   return (
     <div className="al-stats-panel">
       {/* Overview */}
@@ -532,7 +532,7 @@ function AgentStatsPanel({ agent }) {
       <div className="al-panel-section">
         <div className="al-section-title">Actions</div>
         <div className="al-action-btns">
-          <button className="al-action-btn ghost">Test Agent</button>
+          <button className="al-action-btn ghost" onClick={onTestAgent}>Test Agent</button>
           <button className="al-action-btn ghost">Play Casual</button>
           <button className="al-action-btn primary">Play Ranked</button>
         </div>
@@ -543,7 +543,7 @@ function AgentStatsPanel({ agent }) {
 
 // ─── Agent Detail Page ────────────────────────────────────────────────────────
 
-function AgentDetailPage({ agents, agentId, colorIdx, onBack, onSetActive }) {
+function AgentDetailPage({ agents, agentId, colorIdx, onBack, onSetActive, onTestAgent }) {
   const agent = agents.find((a) => a.id === agentId);
   if (!agent) return null;
   return (
@@ -551,7 +551,7 @@ function AgentDetailPage({ agents, agentId, colorIdx, onBack, onSetActive }) {
       <button className="al-back-btn" onClick={onBack}>← Back to Agents</button>
       <div className="al-detail-layout">
         <AgentSidebar agent={agent} colorIdx={colorIdx} onSetActive={() => onSetActive(agent.id)} />
-        <AgentStatsPanel agent={agent} />
+        <AgentStatsPanel agent={agent} onTestAgent={onTestAgent} />
       </div>
     </div>
   );
@@ -559,7 +559,7 @@ function AgentDetailPage({ agents, agentId, colorIdx, onBack, onSetActive }) {
 
 // ─── Main Export ──────────────────────────────────────────────────────────────
 
-export default function AgentLab({ onBackHome }) {
+export default function AgentLab({ onBackHome, onTestAgent }) {
   const [agents, setAgents]           = useState(INITIAL_AGENTS);
   const [view, setView]               = useState("list");
   const [selectedId, setSelectedId]   = useState(null);
@@ -631,7 +631,11 @@ export default function AgentLab({ onBackHome }) {
   }
 
   function handleTest(agent) {
-    toast(`Testing ${agent.name}...`, "🔬");
+    if (onTestAgent) {
+      onTestAgent(agent);
+    } else {
+      toast(`Testing ${agent.name}...`, "🔬");
+    }
   }
 
   return (
@@ -674,6 +678,7 @@ export default function AgentLab({ onBackHome }) {
           colorIdx={selectedIdx}
           onBack={() => setView("list")}
           onSetActive={handleSetActive}
+          onTestAgent={() => handleTest(agents.find((a) => a.id === selectedId))}
         />
       )}
 
