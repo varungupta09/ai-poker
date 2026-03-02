@@ -50,21 +50,33 @@ const NAV_LINK_MAP = {
   Leaderboard: "leaderboard",
 };
 
-function Navbar({ onAgents, onNavigate }) {
+function Navbar({ onAgents, onNavigate, onLogin, user, onLogout }) {
   const [storeOpen, setStoreOpen] = useState(false);
   const [storeTab, setStoreTab] = useState("All");
+  const [avatarOpen, setAvatarOpen] = useState(false);
   const storeRef = useRef(null);
+  const avatarRef = useRef(null);
 
-  // Close on outside click
+  // Close store on outside click
   useEffect(() => {
     function handleClick(e) {
       if (storeRef.current && !storeRef.current.contains(e.target)) {
         setStoreOpen(false);
       }
+      if (avatarRef.current && !avatarRef.current.contains(e.target)) {
+        setAvatarOpen(false);
+      }
     }
-    if (storeOpen) document.addEventListener("mousedown", handleClick);
+    document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
-  }, [storeOpen]);
+  }, []);
+
+  // Build display name / initials from Supabase user_metadata
+  const meta        = user?.user_metadata ?? {};
+  const firstName   = meta.first_name ?? "";
+  const lastName    = meta.last_name  ?? "";
+  const displayName = [firstName, lastName].filter(Boolean).join(" ") || user?.email?.split("@")[0] || "User";
+  const initials    = (firstName[0] ?? user?.email?.[0] ?? "?").toUpperCase();
 
   const filtered =
     storeTab === "All"
@@ -167,7 +179,64 @@ function Navbar({ onAgents, onNavigate }) {
         <button className="hp-btn-primary" style={{ padding: "8px 18px", fontSize: 9, animation: "none" }}>
           + New Agent
         </button>
-        <div className="hp-nav-avatar" title="Profile">🎭</div>
+
+        {user ? (
+          /* ── Avatar + dropdown ────────────────────────────────────── */
+          <div ref={avatarRef} style={{ position: "relative" }}>
+            <button
+              onClick={() => setAvatarOpen((o) => !o)}
+              style={{
+                width: 38, height: 38,
+                borderRadius: "50%",
+                background: "linear-gradient(135deg,#dc2626,#991b1b)",
+                border: "2px solid rgba(220,38,38,0.5)",
+                color: "#fff",
+                fontWeight: 700,
+                fontSize: 14,
+                cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                boxShadow: "0 0 12px rgba(220,38,38,0.35)",
+                flexShrink: 0,
+              }}
+            >
+              {initials}
+            </button>
+
+            {avatarOpen && (
+              <div style={{
+                position: "absolute", top: 46, right: 0,
+                background: "#141414",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: 12,
+                padding: "8px 0",
+                minWidth: 180,
+                boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+                zIndex: 200,
+              }}>
+                <div style={{ padding: "10px 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", marginBottom: 2 }}>{displayName}</div>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>{user.email}</div>
+                </div>
+                <button
+                  onClick={() => { setAvatarOpen(false); onLogout?.(); }}
+                  style={{
+                    display: "block", width: "100%", textAlign: "left",
+                    padding: "10px 16px",
+                    background: "transparent", border: "none",
+                    color: "#f87171", fontSize: 13, cursor: "pointer",
+                    fontFamily: "'Inter', sans-serif",
+                  }}
+                >
+                  Sign out
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <button className="hp-btn-ghost" style={{ padding: "8px 18px", fontSize: 13 }} onClick={onLogin}>
+            Log In
+          </button>
+        )}
       </div>
     </nav>
   );
@@ -432,10 +501,10 @@ function Footer() {
 
 // ─── Main Export ──────────────────────────────────────────────────────────────
 
-export default function HomePage({ onPlayOffline, onAgents, onNavigate }) {
+export default function HomePage({ onPlayOffline, onAgents, onNavigate, onLogin, user, onLogout }) {
   return (
     <div className="hp-shell">
-      <Navbar onAgents={onAgents} onNavigate={onNavigate} />
+      <Navbar onAgents={onAgents} onNavigate={onNavigate} onLogin={onLogin} user={user} onLogout={onLogout} />
       <HeroSection onPlayOffline={onPlayOffline} />
 
       <hr className="hp-section-divider" />

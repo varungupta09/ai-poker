@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { supabase } from "./lib/supabaseClient";
 import PokerTable from "./components/PokerTable.jsx";
 import Crowd from "./components/Crowd.jsx";
 import CountryPokerTable from "./venues/CountryPokerTable.jsx";
@@ -10,6 +11,8 @@ import MatchScreen from "./screens/MatchScreen.jsx";
 import ResultScreen from "./screens/ResultScreen.jsx";
 import LeaderboardScreen from "./screens/LeaderboardScreen.jsx";
 import HistoryScreen from "./screens/HistoryScreen.jsx";
+import LoginScreen from "./screens/LoginScreen.jsx";
+import SignupScreen from "./screens/SignupScreen.jsx";
 
 // ── Deck helpers ──────────────────────────────────────────────────────────────
 const SUITS = ["♠", "♥", "♦", "♣"];
@@ -440,6 +443,23 @@ function LegacyLeaderboardScreen({ onBack }) {
 export default function App() {
   const [screen, setScreen]         = useState("home"); // "home" | "online" | "offline" | "leaderboards" | "play" | "queue" | "match" | "result"
   const [screenParams, setScreenParams] = useState({});
+  const [user, setUser]             = useState(null);
+
+  // ── Auth state ───────────────────────────────────────────────────────────────
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    setScreen("home");
+  }
   const [view, setView]             = useState("player");
   const [venue, setVenue]           = useState("country"); // "arena" | "country"
   const [phase, setPhase]           = useState("waiting");
@@ -528,8 +548,19 @@ export default function App() {
         onPlayOffline={() => setScreen("offline")}
         onAgents={() => setScreen("agents")}
         onNavigate={(s) => setScreen(s)}
+        onLogin={() => setScreen("login")}
+        user={user}
+        onLogout={handleLogout}
       />
     );
+  }
+
+  if (screen === "login") {
+    return <LoginScreen onNavigate={(s) => setScreen(s)} />;
+  }
+
+  if (screen === "signup") {
+    return <SignupScreen onNavigate={(s) => setScreen(s)} />;
   }
 
   if (screen === "agents") {
