@@ -5,7 +5,7 @@ import { mockMatchEvents } from "../mocks/mockMatchEvents.js";
 // ─── Card helpers ─────────────────────────────────────────────────────────────
 
 const SUIT_SYMBOLS = { h: "♥", d: "♦", c: "♣", s: "♠" };
-const SUIT_COLORS  = { h: "#ef4444", d: "#ef4444", c: "#e2e8f0", s: "#e2e8f0" };
+const SUIT_COLORS  = { h: "#ef4444", d: "#ef4444", c: "#1e293b", s: "#1e293b" };
 
 function parseCard(str) {
   if (!str) return null;
@@ -333,7 +333,7 @@ function PokerTablePanel({ board, pot, currentHand }) {
 
 // ─── Match Header ─────────────────────────────────────────────────────────────
 
-function MatchHeader({ currentHand, totalHands, elapsed, isPlaying, onPause, onResume, onReplay, onExit }) {
+function MatchHeader({ currentHand, totalHands, elapsed, isPlaying, onPause, onResume, onReplay, onExit, manualAdvance, onNext, showNextGameButton, nextButtonLabel }) {
   const mins = String(Math.floor(elapsed / 60)).padStart(2, "0");
   const secs = String(elapsed % 60).padStart(2, "0");
 
@@ -388,34 +388,55 @@ function MatchHeader({ currentHand, totalHands, elapsed, isPlaying, onPause, onR
 
       <div style={{ flex: 1 }} />
 
-      {/* Controls */}
-      <button
-        onClick={isPlaying ? onPause : onResume}
-        style={{
-          fontFamily: '"Press Start 2P", monospace',
-          fontSize: 8,
-          background: "rgba(255,255,255,0.07)",
-          color: "#fff",
-          border: "1px solid rgba(255,255,255,0.12)",
-          borderRadius: 6,
-          padding: "6px 14px",
-          cursor: "pointer",
-        }}
-      >{isPlaying ? "⏸ Pause" : "▶ Resume"}</button>
+      {/* Test match: Next game / View results (shown only between hands or at match end) */}
+      {showNextGameButton && onNext && (
+        <button
+          onClick={onNext}
+          style={{
+            fontFamily: '"Press Start 2P", monospace',
+            fontSize: 8,
+            background: nextButtonLabel === "View results" ? "rgba(99,102,241,0.25)" : "rgba(16,185,129,0.2)",
+            color: nextButtonLabel === "View results" ? "#a5b4fc" : "#34d399",
+            border: nextButtonLabel === "View results" ? "1px solid rgba(99,102,241,0.4)" : "1px solid rgba(16,185,129,0.5)",
+            borderRadius: 6,
+            padding: "6px 14px",
+            cursor: "pointer",
+          }}
+        >{nextButtonLabel}</button>
+      )}
 
-      <button
-        onClick={onReplay}
-        style={{
-          fontFamily: '"Press Start 2P", monospace',
-          fontSize: 8,
-          background: "rgba(255,255,255,0.07)",
-          color: "rgba(255,255,255,0.7)",
-          border: "1px solid rgba(255,255,255,0.12)",
-          borderRadius: 6,
-          padding: "6px 14px",
-          cursor: "pointer",
-        }}
-      >↺ Replay</button>
+      {/* Auto-replay controls (hidden in manual-advance mode) */}
+      {!manualAdvance && (
+        <>
+          <button
+            onClick={isPlaying ? onPause : onResume}
+            style={{
+              fontFamily: '"Press Start 2P", monospace',
+              fontSize: 8,
+              background: "rgba(255,255,255,0.07)",
+              color: "#fff",
+              border: "1px solid rgba(255,255,255,0.12)",
+              borderRadius: 6,
+              padding: "6px 14px",
+              cursor: "pointer",
+            }}
+          >{isPlaying ? "⏸ Pause" : "▶ Resume"}</button>
+
+          <button
+            onClick={onReplay}
+            style={{
+              fontFamily: '"Press Start 2P", monospace',
+              fontSize: 8,
+              background: "rgba(255,255,255,0.07)",
+              color: "rgba(255,255,255,0.7)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              borderRadius: 6,
+              padding: "6px 14px",
+              cursor: "pointer",
+            }}
+          >↺ Replay</button>
+        </>
+      )}
 
       <button
         onClick={onExit}
@@ -487,6 +508,8 @@ const INITIAL_MATCH_STATE = {
   actionLog: [],
   winner: null,
   showCards: false,
+  handA: null,
+  handB: null,
 };
 
 function formatAction(verb, amount) {
@@ -497,8 +520,11 @@ function formatAction(verb, amount) {
 export default function MatchScreen({ setScreen, setScreenParams, screenParams }) {
   const opponent  = screenParams?.opponent;
   const matchId   = screenParams?.matchId || "mock-1";
-  const events    = mockMatchEvents[matchId] || [];
-  const totalHands = 20;
+  const events    = screenParams?.events ?? mockMatchEvents[matchId] ?? [];
+  const totalHands = events.length
+    ? Math.max(...events.map((e) => e.handNumber || 0), 1)
+    : 20;
+  const manualAdvance = !!screenParams?.events;
 
   const agentA = { name: activeAgent.name, avatar: activeAgent.avatar, color: activeAgent.color, style: activeAgent.style };
   const agentB = opponent
@@ -537,6 +563,8 @@ export default function MatchScreen({ setScreen, setScreenParams, screenParams }
         next.board = [];
         next.showCards = false;
         next.winner = null;
+        next.handA = null;
+        next.handB = null;
         next.pot = payload.pot ?? 15;
         if (payload.stacks) next.stacks = { ...payload.stacks };
         next.lastAction = { a: null, b: null };
@@ -594,6 +622,8 @@ export default function MatchScreen({ setScreen, setScreenParams, screenParams }
       }
       case "showdown": {
         next.showCards = true;
+        if (payload.handA && Array.isArray(payload.handA)) next.handA = payload.handA;
+        if (payload.handB && Array.isArray(payload.handB)) next.handB = payload.handB;
         next.actionLog = [
           { type: "showdown", text: `SHOWDOWN — ${payload.reason}` },
           ...next.actionLog,
@@ -623,12 +653,17 @@ export default function MatchScreen({ setScreen, setScreenParams, screenParams }
     return next;
   }
 
-  // Advance event loop
+  // Advance event loop. In manual mode: auto-play within a hand, pause before hand_start or match_end.
   useEffect(() => {
     if (!isPlaying) return;
     if (eventIdx >= events.length) return;
 
     const ev = events[eventIdx];
+    const pauseBeforeHandStart = manualAdvance && ev.type === "hand_start" && eventIdx > 0;
+    if (manualAdvance && (pauseBeforeHandStart || ev.type === "match_end")) {
+      return;
+    }
+
     const delay = ev?.type === "hand_start" ? 900 : 700 + Math.random() * 500;
 
     timerRef.current = setTimeout(() => {
@@ -647,7 +682,20 @@ export default function MatchScreen({ setScreen, setScreenParams, screenParams }
     }, delay);
 
     return () => clearTimeout(timerRef.current);
-  }, [eventIdx, isPlaying, replayKey]);
+  }, [eventIdx, isPlaying, replayKey, manualAdvance, events.length]);
+
+  function handleNext() {
+    if (eventIdx >= events.length) {
+      setScreen("result");
+      return;
+    }
+    const ev = events[eventIdx];
+    setMatchState((prev) => applyEvent(ev, prev));
+    setEventIdx((i) => i + 1);
+    if (ev.type === "match_end") {
+      setScreen("result");
+    }
+  }
 
   function handlePause() {
     setIsPlaying(false);
@@ -672,7 +720,7 @@ export default function MatchScreen({ setScreen, setScreenParams, screenParams }
     setScreen("play");
   }
 
-  const { hand, board, pot, stacks, lastAction, actionLog, winner, showCards } = matchState;
+  const { hand, board, pot, stacks, lastAction, actionLog, winner, showCards, handA, handB } = matchState;
 
   // Reverse log so newest is at bottom for display (we prepend, so reverse for display)
   const displayLog = [...actionLog].reverse();
@@ -696,6 +744,10 @@ export default function MatchScreen({ setScreen, setScreenParams, screenParams }
         onResume={handleResume}
         onReplay={handleReplay}
         onExit={handleExit}
+        manualAdvance={manualAdvance}
+        onNext={manualAdvance ? handleNext : undefined}
+        showNextGameButton={manualAdvance && eventIdx < events.length && ((events[eventIdx]?.type === "hand_start" && eventIdx > 0) || events[eventIdx]?.type === "match_end")}
+        nextButtonLabel={eventIdx < events.length && events[eventIdx]?.type === "match_end" ? "View results" : "Next game"}
       />
 
       {/* Main 3-column layout */}
@@ -762,7 +814,7 @@ export default function MatchScreen({ setScreen, setScreenParams, screenParams }
             style={agentA.style}
             isWinner={winner === null ? null : winner === "a"}
             showCards={showCards}
-            cards={["Jh", "9d"]}
+            cards={handA ?? ["??", "??"]}
           />
 
           <div style={{
@@ -783,7 +835,7 @@ export default function MatchScreen({ setScreen, setScreenParams, screenParams }
             style={agentB.style}
             isWinner={winner === null ? null : winner === "b"}
             showCards={showCards}
-            cards={["Kc", "2s"]}
+            cards={handB ?? ["??", "??"]}
           />
 
           {/* Stack summary */}

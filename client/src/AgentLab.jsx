@@ -634,7 +634,7 @@ export default function AgentLab({ onBackHome, onTestAgent }) {
     if (onTestAgent) {
       onTestAgent(agent);
     } else {
-      toast(`Testing ${agent.name}...`, "🔬");
+      toast("Select an agent and use Test to start a test match", "🎲");
     }
   }
 

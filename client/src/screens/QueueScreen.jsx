@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { activeAgent } from "../mocks/mockAgents.js";
+import { runEngineMatch } from "../lib/pokerEngineClient.js";
 
 // ─── Queue Toast ──────────────────────────────────────────────────────────────
 
@@ -47,16 +48,28 @@ function FoundToast({ opponent, visible }) {
 
 // ─── Queue Screen ─────────────────────────────────────────────────────────────
 
-export default function QueueScreen({ setScreen, screenParams }) {
+export default function QueueScreen({ setScreen, setScreenParams, screenParams }) {
   const opponent = screenParams?.opponent;
+  const numHands = Math.min(screenParams?.hands ?? 3, 10);
   const [progress, setProgress] = useState(0);
   const [phase, setPhase] = useState("searching"); // "searching" | "found" | "loading"
   const [toastVisible, setToastVisible] = useState(false);
   const [dots, setDots] = useState("");
+  const [engineEvents, setEngineEvents] = useState(null);
+  const engineEventsRef = useRef(null);
   const rafRef = useRef(null);
   const startRef = useRef(null);
 
-  const TOTAL_MS = 4200;
+  const TOTAL_MS = 5000;
+
+  engineEventsRef.current = engineEvents;
+
+  // Run real poker engine and build events for MatchScreen
+  useEffect(() => {
+    runEngineMatch(numHands)
+      .then((events) => setEngineEvents(events))
+      .catch(() => setEngineEvents([]));
+  }, [numHands]);
 
   useEffect(() => {
     startRef.current = performance.now();
@@ -77,7 +90,8 @@ export default function QueueScreen({ setScreen, screenParams }) {
       if (pct < 100) {
         rafRef.current = requestAnimationFrame(tick);
       } else {
-        // Navigate to match
+        const events = engineEventsRef.current;
+        setScreenParams((prev) => ({ ...prev, events: events ?? undefined }));
         setTimeout(() => setScreen("match"), 200);
       }
     }
@@ -86,7 +100,7 @@ export default function QueueScreen({ setScreen, screenParams }) {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, []);
+  }, [setScreen, setScreenParams]);
 
   // Animated dots
   useEffect(() => {

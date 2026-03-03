@@ -582,6 +582,7 @@ export default function App() {
     return (
       <QueueScreen
         setScreen={setScreen}
+        setScreenParams={setScreenParams}
         screenParams={screenParams}
       />
     );
