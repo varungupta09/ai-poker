@@ -442,31 +442,53 @@ function StoreItem({ item, coins, onBuy, owned }) {
             transition: "opacity 0.15s",
           }}
         >
-          {owned ? "✓ EQUIPPED" : canAfford ? `${item.price.toLocaleString()} 💎` : `${item.price.toLocaleString()} 💎`}
+          {owned ? "✓ OWNED" : canAfford ? `${item.price.toLocaleString()} 💎` : `${item.price.toLocaleString()} 💎`}
         </button>
       </div>
     </div>
   );
 }
 
+// Maps category label → items{} key stored in DB
+const CATEGORY_KEY = {
+  "Venues":     "venue",
+  "Chip Sets":  "chip_set",
+  "Card Backs": "card_back",
+  "Table Felt": "table_felt",
+  "Avatars":    "avatar",
+};
+
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function StoreScreen({ setScreen, user }) {
-  const [activeTab, setActiveTab] = useState("All");
-  const [coins, setCoins] = useState(null);
-  const [owned, setOwned] = useState(new Set(["v3", "c2", "f1", "b1", "a2"]));
-  const [toast, setToast] = useState(null);
+  const [activeTab, setActiveTab]   = useState("All");
+  const [coins, setCoins]           = useState(null);
+  const [owned, setOwned]           = useState(new Set());
+  const [itemsRecord, setItemsRecord] = useState({});
+  const [toast, setToast]           = useState(null);
 
-  // Fetch gems from user_profiles
+  // Fetch gems + items from user_profiles
   useEffect(() => {
     if (!user?.id) return;
     supabase
       .from("user_profiles")
-      .select("gems")
+      .select("gems, items")
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
         if (data?.gems != null) setCoins(data.gems);
+        if (data?.items && typeof data.items === "object") {
+          setItemsRecord(data.items);
+          // Rebuild owned set from stored items
+          const ownedIds = new Set();
+          Object.entries(data.items).forEach(([key, name]) => {
+            const match = STORE_ITEMS.find(
+              (i) => CATEGORY_KEY[i.category] === key && i.name === name
+            );
+            if (match) ownedIds.add(match.id);
+          });
+          setOwned(ownedIds);
+        }
       });
   }, [user?.id]);
 
@@ -476,15 +498,21 @@ export default function StoreScreen({ setScreen, user }) {
 
   async function handleBuy(item) {
     if (owned.has(item.id) || coins == null || coins < item.price) return;
-    const newGems = coins - item.price;
+    const newGems    = coins - item.price;
+    const key        = CATEGORY_KEY[item.category];
+    const newItems   = { ...itemsRecord, [key]: item.name };
+
+    // Optimistic update
     setCoins(newGems);
     setOwned((prev) => new Set([...prev, item.id]));
+    setItemsRecord(newItems);
     setToast(`${item.name} unlocked!`);
     setTimeout(() => setToast(null), 2800);
+
     if (user?.id) {
       await supabase
         .from("user_profiles")
-        .update({ gems: newGems })
+        .update({ gems: newGems, items: newItems })
         .eq("id", user.id);
     }
   }
@@ -566,42 +594,61 @@ export default function StoreScreen({ setScreen, user }) {
             }}>STORE</span>
           </div>
 
-          {/* Balance */}
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            background: "rgba(251,191,36,0.08)",
-            border: "1px solid rgba(251,191,36,0.2)",
-            borderRadius: 10,
-            padding: "8px 16px",
-          }}>
-            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>Gems</span>
-            <span style={{
-              fontFamily: "'Press Start 2P', monospace",
-              fontSize: 12,
-              color: "#fbbf24",
-            }}>
-              {coins == null ? "..." : coins.toLocaleString()} 💎
-            </span>
-          </div>
+          {user ? (
+            <>
+              {/* Balance */}
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                background: "rgba(251,191,36,0.08)",
+                border: "1px solid rgba(251,191,36,0.2)",
+                borderRadius: 10,
+                padding: "8px 16px",
+              }}>
+                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>Gems</span>
+                <span style={{
+                  fontFamily: "'Press Start 2P', monospace",
+                  fontSize: 12,
+                  color: "#fbbf24",
+                }}>
+                  {coins == null ? "..." : coins.toLocaleString()} 💎
+                </span>
+              </div>
 
-          {/* Earn coins hint */}
-          <button
-            onClick={() => setScreen("play")}
-            style={{
-              background: "linear-gradient(135deg,#e01b2d,#991b1b)",
-              border: "none",
-              color: "#fff",
-              fontFamily: "'Press Start 2P', monospace",
-              fontSize: 8,
-              padding: "10px 20px",
-              borderRadius: 8,
-              cursor: "pointer",
-            }}
-          >
-            + EARN GEMS
-          </button>
+              <button
+                onClick={() => setScreen("play")}
+                style={{
+                  background: "linear-gradient(135deg,#e01b2d,#991b1b)",
+                  border: "none",
+                  color: "#fff",
+                  fontFamily: "'Press Start 2P', monospace",
+                  fontSize: 8,
+                  padding: "10px 20px",
+                  borderRadius: 8,
+                  cursor: "pointer",
+                }}
+              >
+                + EARN GEMS
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setScreen("login")}
+              style={{
+                background: "linear-gradient(135deg,#e01b2d,#991b1b)",
+                border: "none",
+                color: "#fff",
+                fontFamily: "'Press Start 2P', monospace",
+                fontSize: 8,
+                padding: "10px 20px",
+                borderRadius: 8,
+                cursor: "pointer",
+              }}
+            >
+              LOG IN
+            </button>
+          )}
         </div>
       </div>
 
