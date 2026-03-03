@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "../lib/supabaseClient";
 
 // ─── Store Data ───────────────────────────────────────────────────────────────
 
@@ -316,7 +317,7 @@ function FeaturedBanner({ item, coins, onBuy }) {
               transition: "opacity 0.15s",
             }}
           >
-            {canAfford ? `BUY — ${item.price.toLocaleString()} 🪙` : `${item.price.toLocaleString()} 🪙 — NOT ENOUGH`}
+            {canAfford ? `BUY — ${item.price.toLocaleString()} 💎` : `${item.price.toLocaleString()} 💎 — NOT ENOUGH`}
           </button>
         </div>
       </div>
@@ -441,7 +442,7 @@ function StoreItem({ item, coins, onBuy, owned }) {
             transition: "opacity 0.15s",
           }}
         >
-          {owned ? "✓ EQUIPPED" : canAfford ? `${item.price.toLocaleString()} 🪙` : `${item.price.toLocaleString()} 🪙`}
+          {owned ? "✓ EQUIPPED" : canAfford ? `${item.price.toLocaleString()} 💎` : `${item.price.toLocaleString()} 💎`}
         </button>
       </div>
     </div>
@@ -450,22 +451,42 @@ function StoreItem({ item, coins, onBuy, owned }) {
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
-export default function StoreScreen({ setScreen }) {
+export default function StoreScreen({ setScreen, user }) {
   const [activeTab, setActiveTab] = useState("All");
-  const [coins, setCoins] = useState(1240);
+  const [coins, setCoins] = useState(null);
   const [owned, setOwned] = useState(new Set(["v3", "c2", "f1", "b1", "a2"]));
   const [toast, setToast] = useState(null);
+
+  // Fetch gems from user_profiles
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase
+      .from("user_profiles")
+      .select("gems")
+      .eq("id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.gems != null) setCoins(data.gems);
+      });
+  }, [user?.id]);
 
   const filtered = activeTab === "All"
     ? STORE_ITEMS
     : STORE_ITEMS.filter((i) => i.category === activeTab);
 
-  function handleBuy(item) {
-    if (owned.has(item.id) || coins < item.price) return;
-    setCoins((c) => c - item.price);
+  async function handleBuy(item) {
+    if (owned.has(item.id) || coins == null || coins < item.price) return;
+    const newGems = coins - item.price;
+    setCoins(newGems);
     setOwned((prev) => new Set([...prev, item.id]));
     setToast(`${item.name} unlocked!`);
     setTimeout(() => setToast(null), 2800);
+    if (user?.id) {
+      await supabase
+        .from("user_profiles")
+        .update({ gems: newGems })
+        .eq("id", user.id);
+    }
   }
 
   return (
@@ -555,13 +576,13 @@ export default function StoreScreen({ setScreen }) {
             borderRadius: 10,
             padding: "8px 16px",
           }}>
-            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>Balance</span>
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>Gems</span>
             <span style={{
               fontFamily: "'Press Start 2P', monospace",
               fontSize: 12,
               color: "#fbbf24",
             }}>
-              {coins.toLocaleString()} 🪙
+              {coins == null ? "..." : coins.toLocaleString()} 💎
             </span>
           </div>
 
@@ -579,7 +600,7 @@ export default function StoreScreen({ setScreen }) {
               cursor: "pointer",
             }}
           >
-            + EARN COINS
+            + EARN GEMS
           </button>
         </div>
       </div>
@@ -690,24 +711,24 @@ export default function StoreScreen({ setScreen }) {
           alignItems: "center",
           gap: 32,
         }}>
-          <div style={{ fontSize: 48 }}>🪙</div>
+          <div style={{ fontSize: 48 }}>💎</div>
           <div style={{ flex: 1 }}>
             <div style={{
               fontFamily: "'Press Start 2P', monospace",
               fontSize: 11,
               color: "#fbbf24",
               marginBottom: 8,
-            }}>EARN MORE COINS</div>
+            }}>EARN MORE GEMS</div>
             <p style={{
               fontSize: 14,
               color: "rgba(255,255,255,0.55)",
               margin: "0 0 4px",
-            }}>Win matches to earn coins. Higher ELO opponents give bigger coin rewards.</p>
+            }}>Win matches to earn gems. Higher ELO opponents give bigger gem rewards.</p>
             <p style={{
               fontSize: 12,
               color: "rgba(255,255,255,0.3)",
               margin: 0,
-            }}>Daily bonus: +50 🪙 &nbsp;·&nbsp; Win streak bonus: up to +200 🪙 &nbsp;·&nbsp; Tournament win: +1,000 🪙</p>
+            }}>Daily bonus: +50 💎 &nbsp;·&nbsp; Win streak bonus: up to +200 💎 &nbsp;·&nbsp; Tournament win: +1,000 💎</p>
           </div>
           <button
             onClick={() => setScreen("play")}
