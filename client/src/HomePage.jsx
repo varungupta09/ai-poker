@@ -25,21 +25,9 @@ const MOCK_FEED = [
   { id: 10,type: "loss",  text: "LuckyDraw folded under pressure",         meta: "6m ago  •  -9 ELO" },
 ];
 
-const COSMETICS = [
-  { id: 1, name: "Neon Felt",      type: "Table Skin",   emoji: "🟩", price: "250 coins", bg: "linear-gradient(135deg,#065f46,#064e3b)" },
-  { id: 2, name: "Royal Chips",    type: "Chip Style",   emoji: "🔵", price: "180 coins", bg: "linear-gradient(135deg,#1e3a8a,#1e40af)" },
-  { id: 3, name: "Cyber Shade",    type: "Agent Avatar", emoji: "🤖", price: "320 coins", bg: "linear-gradient(135deg,#3b0764,#5b21b6)" },
-  { id: 4, name: "Blaze Table",    type: "Table Skin",   emoji: "🔥", price: "400 coins", bg: "linear-gradient(135deg,#7f1d1d,#b91c1c)" },
-  { id: 5, name: "Gold Rush",      type: "Chip Style",   emoji: "🥇", price: "220 coins", bg: "linear-gradient(135deg,#78350f,#b45309)" },
-  { id: 6, name: "Ghost Agent",    type: "Agent Avatar", emoji: "👻", price: "290 coins", bg: "linear-gradient(135deg,#1f2937,#374151)" },
-  { id: 7, name: "Arctic Felt",    type: "Table Skin",   emoji: "❄️", price: "270 coins", bg: "linear-gradient(135deg,#0c4a6e,#0369a1)" },
-];
-
 const PERF_BARS = [32, 55, 48, 70, 62, 80, 58, 74, 68, 85, 72, 91];
 
 const NAV_LINKS = ["Play", "Watch", "Tournaments", "Leaderboard"];
-
-const STORE_TABS = ["All", "Table Skins", "Chip Styles", "Avatars"];
 
 // ─── Navbar ──────────────────────────────────────────────────────────────────
 
@@ -51,18 +39,12 @@ const NAV_LINK_MAP = {
 };
 
 function Navbar({ onAgents, onNavigate, onLogin, user, onLogout }) {
-  const [storeOpen, setStoreOpen] = useState(false);
-  const [storeTab, setStoreTab] = useState("All");
   const [avatarOpen, setAvatarOpen] = useState(false);
-  const storeRef = useRef(null);
   const avatarRef = useRef(null);
 
-  // Close store on outside click
+  // Close avatar dropdown on outside click
   useEffect(() => {
     function handleClick(e) {
-      if (storeRef.current && !storeRef.current.contains(e.target)) {
-        setStoreOpen(false);
-      }
       if (avatarRef.current && !avatarRef.current.contains(e.target)) {
         setAvatarOpen(false);
       }
@@ -77,20 +59,6 @@ function Navbar({ onAgents, onNavigate, onLogin, user, onLogout }) {
   const lastName    = meta.last_name  ?? "";
   const displayName = [firstName, lastName].filter(Boolean).join(" ") || user?.email?.split("@")[0] || "User";
   const initials    = (firstName[0] ?? user?.email?.[0] ?? "?").toUpperCase();
-
-  const filtered =
-    storeTab === "All"
-      ? COSMETICS
-      : COSMETICS.filter((c) => c.type === storeTab.slice(0, -1)); // strip trailing "s"
-
-  // storeTab "Table Skins" → "Table Skin", "Chip Styles" → "Chip Style", "Avatars" → "Avatar"
-  const tabFilter = (item) => {
-    if (storeTab === "All") return true;
-    const map = { "Table Skins": "Table Skin", "Chip Styles": "Chip Style", "Avatars": "Agent Avatar" };
-    return item.type === map[storeTab];
-  };
-
-  const visibleItems = COSMETICS.filter(tabFilter);
 
   return (
     <nav className="hp-navbar">
@@ -109,70 +77,13 @@ function Navbar({ onAgents, onNavigate, onLogin, user, onLogout }) {
         ))}
         <button className="hp-nav-link" onClick={onAgents}>Agents</button>
 
-        {/* Store button + dropdown — sits inline after Leaderboard */}
-        <div className="hp-store-anchor" ref={storeRef}>
-          <button
-            className={`hp-nav-link hp-store-btn ${storeOpen ? "active" : ""}`}
-            onClick={() => setStoreOpen((o) => !o)}
-          >
-            Store
-          </button>
-
-          {storeOpen && (
-            <div className="hp-store-dropdown">
-              {/* Header */}
-              <div className="hp-store-header">
-                <div>
-                  <div className="hp-section-label" style={{ marginBottom: 4 }}>Cosmetics</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: "white" }}>Store</div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)" }}>Balance:</div>
-                  <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 11, color: "#fbbf24" }}>
-                    1,240 🪙
-                  </div>
-                </div>
-              </div>
-
-              {/* Tabs */}
-              <div className="hp-store-tabs">
-                {STORE_TABS.map((tab) => (
-                  <button
-                    key={tab}
-                    className={`hp-store-tab ${storeTab === tab ? "active" : ""}`}
-                    onClick={() => setStoreTab(tab)}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
-
-              {/* Items grid */}
-              <div className="hp-store-grid">
-                {visibleItems.map((item) => (
-                  <div key={item.id} className="hp-store-item">
-                    <div className="hp-store-item-visual" style={{ background: item.bg }}>
-                      {item.emoji}
-                    </div>
-                    <div className="hp-store-item-name">{item.name}</div>
-                    <div className="hp-store-item-type">{item.type}</div>
-                    <button className="hp-store-item-btn">{item.price}</button>
-                  </div>
-                ))}
-              </div>
-
-              {/* Footer */}
-              <div className="hp-store-footer">
-                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>
-                  New items drop every Friday
-                </span>
-                <button className="hp-btn-ghost" style={{ fontSize: 11, padding: "6px 14px" }}>
-                  View full store →
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+        {/* Store — navigates to full store page */}
+        <button
+          className="hp-nav-link"
+          onClick={() => onNavigate?.("store")}
+        >
+          Store
+        </button>
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>

@@ -11,6 +11,7 @@ import MatchScreen from "./screens/MatchScreen.jsx";
 import ResultScreen from "./screens/ResultScreen.jsx";
 import LeaderboardScreen from "./screens/LeaderboardScreen.jsx";
 import HistoryScreen from "./screens/HistoryScreen.jsx";
+import StoreScreen from "./screens/StoreScreen.jsx";
 import LoginScreen from "./screens/LoginScreen.jsx";
 import SignupScreen from "./screens/SignupScreen.jsx";
 
@@ -622,6 +623,10 @@ export default function App() {
         setScreenParams={setScreenParams}
       />
     );
+  }
+
+  if (screen === "store") {
+    return <StoreScreen setScreen={setScreen} user={user} />;
   }
 
   if (screen === "online") {
