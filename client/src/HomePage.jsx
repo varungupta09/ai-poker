@@ -38,7 +38,7 @@ const NAV_LINK_MAP = {
   Leaderboard: "leaderboard",
 };
 
-function Navbar({ onAgents, onNavigate, onLogin, user, onLogout }) {
+function Navbar({ onAgents, onNavigate, onLogin, user, onLogout, isPremium }) {
   const [avatarOpen, setAvatarOpen] = useState(false);
   const avatarRef = useRef(null);
 
@@ -84,6 +84,13 @@ function Navbar({ onAgents, onNavigate, onLogin, user, onLogout }) {
         >
           Store
         </button>
+
+        {/* Premium — shown only to non-premium users */}
+        {!isPremium && (
+          <button className="hp-nav-link" onClick={() => onNavigate?.("premium")}>
+            Premium
+          </button>
+        )}
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -412,10 +419,10 @@ function Footer() {
 
 // ─── Main Export ──────────────────────────────────────────────────────────────
 
-export default function HomePage({ onPlayOffline, onAgents, onNavigate, onLogin, user, onLogout }) {
+export default function HomePage({ onPlayOffline, onAgents, onNavigate, onLogin, user, onLogout, isPremium }) {
   return (
     <div className="hp-shell">
-      <Navbar onAgents={onAgents} onNavigate={onNavigate} onLogin={onLogin} user={user} onLogout={onLogout} />
+      <Navbar onAgents={onAgents} onNavigate={onNavigate} onLogin={onLogin} user={user} onLogout={onLogout} isPremium={isPremium} />
       <HeroSection onPlayOffline={onPlayOffline} />
 
       <hr className="hp-section-divider" />

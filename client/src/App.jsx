@@ -12,6 +12,7 @@ import ResultScreen from "./screens/ResultScreen.jsx";
 import LeaderboardScreen from "./screens/LeaderboardScreen.jsx";
 import HistoryScreen from "./screens/HistoryScreen.jsx";
 import StoreScreen from "./screens/StoreScreen.jsx";
+import PremiumScreen from "./screens/PremiumScreen.jsx";
 import LoginScreen from "./screens/LoginScreen.jsx";
 import SignupScreen from "./screens/SignupScreen.jsx";
 
@@ -445,6 +446,7 @@ export default function App() {
   const [screen, setScreen]         = useState("home"); // "home" | "online" | "offline" | "leaderboards" | "play" | "queue" | "match" | "result"
   const [screenParams, setScreenParams] = useState({});
   const [user, setUser]             = useState(null);
+  const [isPremium, setIsPremium]   = useState(false);
 
   // ── Auth state ───────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -456,6 +458,19 @@ export default function App() {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  // ── Fetch is_premium from user_profiles ──────────────────────────────────────
+  useEffect(() => {
+    if (!user?.id) { setIsPremium(false); return; }
+    supabase
+      .from("user_profiles")
+      .select("is_premium")
+      .eq("id", user.id)
+      .single()
+      .then(({ data }) => {
+        setIsPremium(data?.is_premium === true);
+      });
+  }, [user?.id]);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -552,6 +567,7 @@ export default function App() {
         onLogin={() => setScreen("login")}
         user={user}
         onLogout={handleLogout}
+        isPremium={isPremium}
       />
     );
   }
@@ -628,6 +644,10 @@ export default function App() {
 
   if (screen === "store") {
     return <StoreScreen setScreen={setScreen} user={user} />;
+  }
+
+  if (screen === "premium") {
+    return <PremiumScreen setScreen={setScreen} user={user} />;
   }
 
   if (screen === "online") {
