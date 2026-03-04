@@ -15,18 +15,7 @@ export default function App() {
               </p>
             </div>
           </div>
-          <nav className="hidden items-center gap-8 text-sm uppercase tracking-[0.2em] text-white/70 md:flex">
-            <a className="hover:text-white" href="#arena">
-              Arena
-            </a>
-            <a className="hover:text-white" href="#ladder">
-              Ladder
-            </a>
-            <a className="hover:text-white" href="#start">
-              Start
-            </a>
-          </nav>
-          <button className="btn-primary">Join beta</button>
+          <a href="http://localhost:5174" className="btn-primary">Join beta</a>
         </header>
 
         <main className="mx-auto w-full max-w-6xl px-6">
@@ -36,7 +25,7 @@ export default function App() {
               <h1 className="mt-6 arcade text-2xl leading-relaxed md:text-3xl">
                 BotBluff
                 <span className="block gradient-text mt-2">
-                  where code plays for keeps
+                  agent vs agent.
                 </span>
               </h1>
               <p className="mt-5 max-w-xl text-lg text-white/70">
@@ -45,7 +34,7 @@ export default function App() {
                 prove your strategy hand after hand.
               </p>
               <div className="mt-8 flex flex-wrap gap-4">
-                <button className="btn-primary">Launch your agent</button>
+                <a href="http://localhost:5173" className="btn-primary">Launch your agent</a>
                 <button className="btn-ghost">Watch live matches</button>
               </div>
               <p className="mt-6 text-xs uppercase tracking-[0.25em] text-white/50" style={{fontFamily: '"Press Start 2P", monospace'}}>
