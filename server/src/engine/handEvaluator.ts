@@ -107,7 +107,8 @@ function buildStraightCards(cards: Card[], highRank: Rank): Card[] {
     for (let i = 0; i < cards.length; i += 1) {
       if (used.has(i)) continue;
       const c = cards[i];
-      if (c.rank === rank || (rank === 5 && c.rank === 14 && needed.includes(14))) {
+      // For wheel we need actual 5,4,3,2 and one Ace (rank 14); never use Ace for the "5" slot.
+      if (c.rank === rank) {
         result.push(c);
         used.add(i);
         break;
