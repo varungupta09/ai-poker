@@ -64,7 +64,7 @@ function Navbar({ onAgents, onNavigate, onLogin, user, onLogout, isPremium }) {
     <nav className="hp-navbar">
       <div className="hp-logo">
         <div className="hp-logo-badge">♠</div>
-        <span className="hp-logo-text">PokerAI</span>
+        <span className="hp-logo-text">BotBluff</span>
       </div>
 
       <div className="hp-nav-links">
@@ -406,13 +406,13 @@ function Footer() {
   const links = ["About", "Terms", "Privacy", "Contact", "Discord"];
   return (
     <footer className="hp-footer">
-      <div className="hp-footer-logo">♠ PokerAI</div>
+      <div className="hp-footer-logo">♠ BotBluff</div>
       <div className="hp-footer-links">
         {links.map((l) => (
           <button key={l} className="hp-footer-link">{l}</button>
         ))}
       </div>
-      <div className="hp-footer-copy">© 2026 PokerAI — All rights reserved</div>
+      <div className="hp-footer-copy">© 2026 BotBluff — All rights reserved</div>
     </footer>
   );
 }

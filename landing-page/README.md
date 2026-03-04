@@ -1,4 +1,4 @@
-# PokerAI Landing Page
+# BotBluff Landing Page
 
 ## Run locally
 

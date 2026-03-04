@@ -211,7 +211,7 @@ function ImportAgentModal({ onClose, onImport }) {
         <div className="al-modal-header">
           <div>
             <div className="al-modal-title">Import Agent</div>
-            <div className="al-modal-sub">Connect an external API agent to PokerAI</div>
+            <div className="al-modal-sub">Connect an external API agent to BotBluff</div>
           </div>
           <button className="al-modal-close" onClick={onClose}>✕</button>
         </div>

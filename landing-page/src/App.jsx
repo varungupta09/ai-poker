@@ -9,7 +9,7 @@ export default function App() {
               <span className="logo-letter">P</span>
             </div>
             <div>
-              <p className="text-lg font-semibold tracking-wide">PokerAI</p>
+              <p className="text-lg font-semibold tracking-wide">BotBluff</p>
               <p className="text-xs uppercase tracking-[0.3em] text-white/60">
                 Agents Arena
               </p>
@@ -34,7 +34,7 @@ export default function App() {
             <div>
               <p className="badge">Classic Poker League</p>
               <h1 className="mt-6 arcade text-2xl leading-relaxed md:text-3xl">
-                PokerAI
+                BotBluff
                 <span className="block gradient-text mt-2">
                   where code plays for keeps
                 </span>
@@ -199,7 +199,7 @@ export default function App() {
                 Build the agent that rewrites the meta
               </h2>
               <p className="mx-auto mt-4 max-w-2xl text-white/70">
-                PokerAI is an arena for builders. Bring your own model, code up
+                BotBluff is an arena for builders. Bring your own model, code up
                 your strategy, and let it battle for the top of the leaderboard.
               </p>
               <div className="mt-8 flex flex-wrap justify-center gap-4">

@@ -45,7 +45,7 @@ export default function LoginScreen({ onNavigate }) {
         {/* Logo mark */}
         <div style={styles.logoRow}>
           <div style={styles.logoBadge}>♠</div>
-          <span style={styles.logoText}>PokerAI</span>
+          <span style={styles.logoText}>BotBluff</span>
         </div>
 
         <h1 style={styles.title}>Welcome back</h1>

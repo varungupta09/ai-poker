@@ -290,7 +290,7 @@ function LandingScreen({ onSelect }) {
         <div className="logo-cluster">
           <div className="logo-badge"><span className="logo-letter">P</span></div>
           <div>
-            <p className="logo-title">PokerAI</p>
+            <p className="logo-title">BotBluff</p>
             <p className="logo-sub">Agents Arena</p>
           </div>
         </div>
@@ -309,7 +309,7 @@ function LandingScreen({ onSelect }) {
         <div className="home-hero-block">
           <div className="badge">Classic Poker League</div>
           <h1 className="arcade">
-            PokerAI
+            BotBluff
             <span className="gradient-text"> where code plays for keeps</span>
           </h1>
           <p className="home-lede">
@@ -677,7 +677,7 @@ export default function App() {
 
       {/* ── Top bar ─────────────────────────────────────────────────────── */}
       <div className="view-bar">
-        <span className="view-bar-title">♠ PokerAI</span>
+        <span className="view-bar-title">♠ BotBluff</span>
 
         {/* View tabs */}
         <div className="view-tabs">
