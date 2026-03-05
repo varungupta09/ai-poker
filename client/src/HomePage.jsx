@@ -63,7 +63,13 @@ function Navbar({ onAgents, onNavigate, onLogin, user, onLogout, isPremium }) {
   return (
     <nav className="hp-navbar">
       <div className="hp-logo">
-        <div className="hp-logo-badge">♠</div>
+        <div className="hp-logo-badge" style={{ padding: 0 }}>
+          <img
+            src="/botbluff-logo.png"
+            alt="BotBluff"
+            style={{ width: "26px", height: "26px", objectFit: "contain" }}
+          />
+        </div>
         <span className="hp-logo-text">BotBluff</span>
       </div>
 

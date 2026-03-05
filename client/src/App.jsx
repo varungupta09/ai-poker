@@ -288,7 +288,13 @@ function LandingScreen({ onSelect }) {
 
       <header className="home-header">
         <div className="logo-cluster">
-          <div className="logo-badge"><span className="logo-letter">P</span></div>
+          <div className="logo-badge">
+            <img
+              src="/botbluff-logo.png"
+              alt="BotBluff"
+              style={{ width: "32px", height: "32px", objectFit: "contain" }}
+            />
+          </div>
           <div>
             <p className="logo-title">BotBluff</p>
             <p className="logo-sub">Agents Arena</p>
