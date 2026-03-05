@@ -15,6 +15,7 @@ import StoreScreen from "./screens/StoreScreen.jsx";
 import PremiumScreen from "./screens/PremiumScreen.jsx";
 import LoginScreen from "./screens/LoginScreen.jsx";
 import SignupScreen from "./screens/SignupScreen.jsx";
+import LivePokerScreen from "./screens/LivePokerScreen.jsx";
 
 // ── Deck helpers ──────────────────────────────────────────────────────────────
 const SUITS = ["♠", "♥", "♦", "♣"];
@@ -656,6 +657,10 @@ export default function App() {
     return <PremiumScreen setScreen={setScreen} user={user} />;
   }
 
+  if (screen === "live-poker") {
+    return <LivePokerScreen setScreen={setScreen} />;
+  }
+
   if (screen === "online") {
     return (
       <ComingSoonScreen
@@ -679,6 +684,7 @@ export default function App() {
         <button className="pill pill-link" onClick={goHome}>← Home</button>
         <div className="pill pill-ghost">Offline sandbox</div>
         <div className="pill pill-soft">Local only</div>
+        <button className="pill pill-link" style={{ marginLeft: "auto", color: "#e01b2d" }} onClick={() => setScreen("live-poker")}>▶ Play vs AI Bots →</button>
       </div>
 
       {/* ── Top bar ─────────────────────────────────────────────────────── */}

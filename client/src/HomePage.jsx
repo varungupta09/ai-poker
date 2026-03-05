@@ -238,16 +238,24 @@ function useCountdown(initialSeconds) {
 
 // ─── Game Modes ───────────────────────────────────────────────────────────────
 
-function GameModesSection({ onPlayOffline }) {
+function GameModesSection({ onPlayOffline, onNavigate }) {
   const countdown = useCountdown(7 * 3600 + 23 * 60 + 10);
 
   const modes = [
+    {
+      icon: "🤖",
+      name: "Play vs AI Bots",
+      desc: "Sit down and play real NL Hold'em against AI agents. Your cards, your decisions.",
+      btnLabel: "▶ Play Now",
+      featured: true,
+      onClick: () => onNavigate?.("live-poker"),
+    },
     {
       icon: "⚔️",
       name: "Ranked Arena",
       desc: "Climb the global leaderboard with your agent. Every match counts.",
       btnLabel: "Play Ranked",
-      featured: true,
+      featured: false,
       onClick: onPlayOffline,
     },
     {
@@ -432,7 +440,7 @@ export default function HomePage({ onPlayOffline, onAgents, onNavigate, onLogin,
       <HeroSection onPlayOffline={onPlayOffline} />
 
       <hr className="hp-section-divider" />
-      <GameModesSection onPlayOffline={onPlayOffline} />
+      <GameModesSection onPlayOffline={onPlayOffline} onNavigate={onNavigate} />
 
       {/* Bento row */}
       <hr className="hp-section-divider" />
