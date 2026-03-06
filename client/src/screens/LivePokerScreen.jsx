@@ -7,6 +7,7 @@
 */
 
 import { useState, useEffect, useRef, useCallback } from "react"
+import { supabase } from "../lib/supabaseClient"
 
 const API = import.meta.env.VITE_POKER_API_URL ?? "http://localhost:3001"
 
@@ -341,8 +342,13 @@ function ActionButtons({ legalActions, onAction, disabled }) {
 
 // ── Winners banner ──────────────────────────────────────────────────────────
 
-function WinnersBanner({ winners, onNextHand }) {
+function WinnersBanner({ winners, onNextHand, yourId, agentLabel }) {
   if (!winners || winners.length === 0) return null
+
+  function displayName(playerId) {
+    if (playerId === yourId) return agentLabel ? `You (${agentLabel})` : "You"
+    return playerId
+  }
 
   return (
     <div style={{
@@ -359,7 +365,7 @@ function WinnersBanner({ winners, onNextHand }) {
       <div>
         {winners.map((w, i) => (
           <div key={i} style={{ fontFamily: "Inter,sans-serif", fontSize: 13, color: "#6ee7b7", marginBottom: 2 }}>
-            🏆 <strong>{w.playerId}</strong> wins {w.potAmount.toLocaleString()} chips
+            🏆 <strong>{displayName(w.playerId)}</strong> wins {w.potAmount.toLocaleString()} chips
             {w.handDescription && w.handDescription !== "Uncontested" ? ` — ${w.handDescription}` : ""}
           </div>
         ))}
@@ -386,13 +392,50 @@ function WinnersBanner({ winners, onNextHand }) {
   )
 }
 
+// ── Agent decision engine ───────────────────────────────────────────────────
+// Pure function — given legalActions + strategy_config, returns an action.
+
+function computeAgentAction(legalActions, cfg) {
+  const aggression = cfg?.aggression      ?? 50
+  const bluffFreq  = cfg?.bluff_frequency ?? 50
+  const riskTol    = cfg?.risk_tolerance  ?? 50
+  const acts       = legalActions?.actions ?? []
+  const min        = legalActions?.minBetOrRaise ?? 0
+  const r          = () => Math.random() * 100
+
+  // Free action: check available
+  if (acts.includes("check")) {
+    // Bet if aggressive enough
+    if (acts.includes("bet") && r() < aggression * 0.65) {
+      return { type: "bet", amount: min }
+    }
+    return { type: "check" }
+  }
+
+  // Facing a bet
+  if (acts.includes("call")) {
+    // Fold if risk-averse and not bluffing
+    if (r() > riskTol && r() > bluffFreq) {
+      return acts.includes("fold") ? { type: "fold" } : { type: "call" }
+    }
+    // Re-raise if aggressive
+    if (acts.includes("raise") && r() < aggression * 0.45) {
+      return { type: "raise", amount: min }
+    }
+    return { type: "call" }
+  }
+
+  if (acts.includes("fold")) return { type: "fold" }
+  return { type: acts[0] ?? "fold" }
+}
+
 // ── Lobby / setup panel ─────────────────────────────────────────────────────
 
 const BOT_OPTIONS = [
   { type: "random", label: "Random" },
   { type: "call",   label: "Caller" },
   { type: "fold",   label: "Folder" },
-  { type: "rmx",    label: "RMX" },
+  { type: "rmx",    label: "RM7X" },
 ]
 
 function Lobby({ onStart }) {
@@ -402,6 +445,25 @@ function Lobby({ onStart }) {
   const [startingStack, setStack]     = useState(1000)
   const [botTypes, setBotTypes]       = useState(["random", "call"])
   const [watchMode, setWatchMode]     = useState(false)
+  const [userAgents, setUserAgents]   = useState([])
+  const [selectedAgent, setSelectedAgent] = useState(null)
+
+  useEffect(() => {
+    async function loadUserAgents() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data } = await supabase
+        .from("user_agents")
+        .select("id, agent_name, strategy_config")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+      if (data?.length) {
+        setUserAgents(data)
+        setSelectedAgent(data[0].id)
+      }
+    }
+    loadUserAgents()
+  }, [])
 
   function updateBot(idx, type) {
     const next = [...botTypes]
@@ -413,7 +475,10 @@ function Lobby({ onStart }) {
   const bots = Array.from({ length: playerCount - 1 }, (_, i) => botTypes[i] ?? "random")
 
   function handleStart() {
-    onStart({ playerCount, smallBlind, bigBlind, startingStack, botTypes: bots, watchMode })
+    const agentData  = userAgents.find((a) => a.id === selectedAgent)
+    const agentConfig = agentData?.strategy_config ?? null
+    const agentName   = agentData?.agent_name ?? null
+    onStart({ playerCount, smallBlind, bigBlind, startingStack, botTypes: bots, watchMode, selectedAgent, agentConfig, agentName })
   }
 
   const inputStyle = {
@@ -446,7 +511,7 @@ function Lobby({ onStart }) {
           POKER vs AI BOTS
         </div>
         <div style={{ fontFamily: "Inter,sans-serif", fontSize: 13, color: "rgba(255,255,255,0.4)", textAlign: "center" }}>
-          {watchMode ? "Watch your RMX agent battle the bots!" : "You play as the human. Bots act automatically."}
+          {watchMode ? "Watch your agent battle the bots!" : "You play as the human. Bots act automatically."}
         </div>
       </div>
 
@@ -463,30 +528,58 @@ function Lobby({ onStart }) {
         {/* Your seat */}
         <div>
           <label style={labelStyle}>YOUR SEAT</label>
-          <div style={{ display: "flex", gap: 8 }}>
-            {[
-              { value: false, label: "▶ Play (Human)" },
-              { value: true,  label: "👁 Watch (RMX Agent)" },
-            ].map(({ value, label }) => (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button
+              onClick={() => setWatchMode(false)}
+              style={{
+                fontFamily: "Inter,sans-serif",
+                fontSize: 12,
+                padding: "8px 14px",
+                borderRadius: 7,
+                border: !watchMode ? "1.5px solid #06b6d4" : "1.5px solid rgba(255,255,255,0.12)",
+                background: !watchMode ? "rgba(6,182,212,0.2)" : "rgba(255,255,255,0.04)",
+                color: !watchMode ? "#67e8f9" : "rgba(255,255,255,0.55)",
+                cursor: "pointer",
+              }}
+            >▶ Play (Human)</button>
+            {userAgents.length === 0 ? (
               <button
-                key={String(value)}
-                onClick={() => setWatchMode(value)}
+                onClick={() => setWatchMode(true)}
                 style={{
                   fontFamily: "Inter,sans-serif",
                   fontSize: 12,
                   padding: "8px 14px",
                   borderRadius: 7,
-                  border: watchMode === value
-                    ? "1.5px solid #06b6d4"
-                    : "1.5px solid rgba(255,255,255,0.12)",
-                  background: watchMode === value
-                    ? "rgba(6,182,212,0.2)"
-                    : "rgba(255,255,255,0.04)",
-                  color: watchMode === value ? "#67e8f9" : "rgba(255,255,255,0.55)",
+                  border: watchMode ? "1.5px solid #06b6d4" : "1.5px solid rgba(255,255,255,0.12)",
+                  background: watchMode ? "rgba(6,182,212,0.2)" : "rgba(255,255,255,0.04)",
+                  color: watchMode ? "#67e8f9" : "rgba(255,255,255,0.55)",
                   cursor: "pointer",
                 }}
-              >{label}</button>
-            ))}
+              >👁 Watch (RM7X)</button>
+            ) : (
+              userAgents.map((a) => (
+                <button
+                  key={a.id}
+                  onClick={() => { setWatchMode(true); setSelectedAgent(a.id) }}
+                  style={{
+                    fontFamily: "Inter,sans-serif",
+                    fontSize: 12,
+                    padding: "8px 14px",
+                    borderRadius: 7,
+                    border: watchMode && selectedAgent === a.id
+                      ? "1.5px solid #06b6d4"
+                      : "1.5px solid rgba(255,255,255,0.12)",
+                    background: watchMode && selectedAgent === a.id
+                      ? "rgba(6,182,212,0.2)"
+                      : "rgba(255,255,255,0.04)",
+                    color: watchMode && selectedAgent === a.id
+                      ? "#67e8f9"
+                      : "rgba(255,255,255,0.55)",
+                    cursor: "pointer",
+                  }}
+                >👁 {a.agent_name}</button>
+              ))
+            )}
           </div>
         </div>
 
@@ -518,8 +611,8 @@ function Lobby({ onStart }) {
           <label style={labelStyle}>{watchMode ? "OTHER BOTS" : "BOT TYPES"}</label>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {bots.map((bt, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontFamily: "Inter,sans-serif", fontSize: 12, color: "rgba(255,255,255,0.5)", width: 50 }}>Bot {i + 1}</span>
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontFamily: "Inter,sans-serif", fontSize: 12, color: "rgba(255,255,255,0.5)", width: 50, flexShrink: 0 }}>Bot {i + 1}</span>
                 {BOT_OPTIONS.map(({ type, label }) => (
                   <button
                     key={type}
@@ -622,7 +715,7 @@ function PersonAvatar({ color, size = 46, isWinner, isToAct, isYou }) {
   )
 }
 
-function SeatChip({ player, colorIdx, isYou, isYourAgent, showCards, lastAction, isWinner, isToAct }) {
+function SeatChip({ player, colorIdx, isYou, isYourAgent, agentLabel, showCards, lastAction, isWinner, isToAct }) {
   const color  = (isYou || isYourAgent) ? "#06b6d4" : SEAT_PLAYER_COLORS[colorIdx % SEAT_PLAYER_COLORS.length]
   const folded = player?.hasFolded
   const cards  = player?.holeCards ?? []
@@ -659,7 +752,7 @@ function SeatChip({ player, colorIdx, isYou, isYourAgent, showCards, lastAction,
           color: (isYou || isYourAgent) ? "#67e8f9" : "rgba(255,255,255,0.65)",
           marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         }}>
-          {isYourAgent ? "YOU · RMX" : isYou ? "YOU" : player.id}
+          {isYourAgent ? `YOU · ${agentLabel ?? "RMX"}` : isYou ? "YOU" : player.id}
         </div>
         <div style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 9, color: isWinner ? "#10b981" : "#fcd34d" }}>
           {player.stack.toLocaleString()}
@@ -698,7 +791,7 @@ const SEAT_LAYOUT = [
   [{ l: 5,  t: 36 }, { l: 24, t: 13 }, { l: 50, t: 9  }, { l: 76, t: 13 }, { l: 95, t: 36 }],
 ]
 
-function PokerTableView({ players, community, pot, isSpectating, lastActions, winnerIds, toActId }) {
+function PokerTableView({ players, community, pot, isSpectating, agentLabel, lastActions, winnerIds, toActId }) {
   const yourId    = isSpectating ? "rmx-you" : "you"
   const youPlayer = players.find(p => p.id === yourId)
   const bots      = players.filter(p => p.id !== yourId)
@@ -761,6 +854,7 @@ function PokerTableView({ players, community, pot, isSpectating, lastActions, wi
               player={bot}
               colorIdx={i}
               isYourAgent={isSpectating && bot.id === "rmx-you"}
+              agentLabel={agentLabel}
               showCards={isSpectating && bot.id === "rmx-you"}
               lastAction={lastActions[bot.id] ?? null}
               isWinner={winnerIds.has(bot.id)}
@@ -783,6 +877,7 @@ function PokerTableView({ players, community, pot, isSpectating, lastActions, wi
             colorIdx={-1}
             isYou={!isSpectating}
             isYourAgent={isSpectating}
+            agentLabel={agentLabel}
             showCards={isSpectating}
             lastAction={lastActions[yourId] ?? null}
             isWinner={winnerIds.has(yourId)}
@@ -810,6 +905,8 @@ export default function LivePokerScreen({ setScreen }) {
   const [isSpectating, setIsSpectating] = useState(false)
   const [paused,       setPaused]       = useState(false)
   const [countdown,    setCountdown]    = useState(null)
+  const [agentConfig,  setAgentConfig]  = useState(null)
+  const [agentName,    setAgentName]    = useState(null)
 
   // Build display log from snap.log
   function buildDisplayLog(rawLog, street) {
@@ -839,26 +936,45 @@ export default function LivePokerScreen({ setScreen }) {
 
   // ── Create game from lobby settings ──────────────────────────────────────
 
-  async function handleLobbyStart({ playerCount, smallBlind, bigBlind, startingStack: stack, botTypes, watchMode }) {
+  async function handleLobbyStart({ playerCount, smallBlind, bigBlind, startingStack: stack, botTypes, watchMode, agentConfig: cfg, agentName: aName }) {
     setLoading(true)
     setError(null)
     try {
       startingStack.current = stack
       setIsSpectating(watchMode)
+      setAgentConfig(cfg ?? null)
+      setAgentName(aName ?? null)
+
+      if (watchMode && cfg) {
+        console.log(
+          `%c🤖 Agent: ${aName}`,
+          "color: #06b6d4; font-weight: bold; font-size: 14px;"
+        )
+        console.log("Strategy config:", {
+          base_style:      cfg.base_style,
+          aggression:      cfg.aggression,
+          bluff_frequency: cfg.bluff_frequency,
+          risk_tolerance:  cfg.risk_tolerance,
+          looseness:       cfg.looseness,
+        })
+      }
       setPaused(false)
+      // If watchMode with a user agent config: type "human" so server waits for client action.
+      // If watchMode with RM7X (no agentConfig): type "rmx", server handles it automatically.
+      const agentSeatType = (watchMode && cfg) ? "human" : "rmx"
       const players = watchMode
         ? [
-            { id: "rmx-you", type: "rmx", startingStack: stack },
+            { id: "rmx-you", type: agentSeatType, startingStack: stack },
             ...botTypes.map((type, i) => ({ id: `Bot ${i + 1}`, type, startingStack: stack })),
           ]
         : [
             { id: HUMAN_ID, type: "human", startingStack: stack },
             ...botTypes.map((type, i) => ({ id: `Bot ${i + 1}`, type, startingStack: stack })),
           ]
-      const cfg = { smallBlind, bigBlind }
-      const data = await apiPost("/game", { players, config: cfg })
+      const gameConfig = { smallBlind, bigBlind }
+      const data = await apiPost("/game", { players, config: gameConfig })
       setGameId(data.gameId)
-      setConfig(cfg)
+      setConfig(gameConfig)
       setSpecs(players)
       setLog([{ type: "dealer", text: watchMode ? "Game created — spectator mode, auto-dealing…" : "Game created — click Deal to start!" }])
     } catch (e) {
@@ -921,6 +1037,19 @@ export default function LivePokerScreen({ setScreen }) {
       setLoading(false)
     }
   }
+
+  // ── Auto-act: fire when it's the user agent's turn ───────────────────────
+  useEffect(() => {
+    if (!isSpectating || !agentConfig || !snap?.isHumanTurn || snap?.handOver || loading) return
+    // Simulate a short "thinking" delay (0.8 – 1.5 s)
+    const delay = 800 + Math.random() * 700
+    const timer = setTimeout(() => {
+      const action = computeAgentAction(snap.legalActions, agentConfig)
+      handleAction(action)
+    }, delay)
+    return () => clearTimeout(timer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snap?.isHumanTurn, snap?.handOver, isSpectating, agentConfig, loading])
 
   // ── Spectator auto-deal effect ────────────────────────────────────────────
   // Depends on `snap` (object reference) so it re-fires every time new hand
@@ -1051,6 +1180,7 @@ export default function LivePokerScreen({ setScreen }) {
             community={community}
             pot={pot}
             isSpectating={isSpectating}
+            agentLabel={agentName ?? "RMX"}
             lastActions={lastActions}
             winnerIds={winnerIds}
             toActId={state && !handOver ? state.players[state.toActIndex]?.id : null}
@@ -1064,6 +1194,8 @@ export default function LivePokerScreen({ setScreen }) {
               <WinnersBanner
                 winners={snap.winners}
                 onNextHand={isSpectating ? null : () => dealHand(gameId)}
+                yourId={isSpectating ? "rmx-you" : HUMAN_ID}
+                agentLabel={agentName}
               />
             )}
 

@@ -126,11 +126,18 @@ export default function QuickAgent({ onBack, onClose, onCreate }) {
     const { error: insertError } = await supabase
       .from("user_agents")
       .insert({
-        user_id:       user.id,
-        agent_name:    agentName,
-        description:   null,
-        strategy_type: baseStyle,
-        is_public:     false,
+        user_id:         user.id,
+        agent_name:      agentName,
+        description:     null,
+        strategy_type:   baseStyle,
+        is_public:       false,
+        strategy_config: {
+          base_style:      baseStyle,
+          aggression,
+          bluff_frequency: bluffFreq,
+          risk_tolerance:  riskTolerance,
+          looseness,
+        },
       });
     setLoading(false);
 
