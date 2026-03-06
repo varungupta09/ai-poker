@@ -1,6 +1,42 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import QuickAgent from "./agentConfig/QuickAgent";
+import { supabase } from "./lib/supabaseClient";
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
+// ─── DB → UI mapping ─────────────────────────────────────────────────────────
+
+function eloToRank(elo) {
+  if (elo >= 2000) return "Diamond I";
+  if (elo >= 1600) return "Platinum I";
+  if (elo >= 1200) return "Gold I";
+  if (elo >= 900)  return "Silver I";
+  if (elo >= 600)  return "Bronze I";
+  return "Unranked";
+}
+
+function mapDbAgent(row) {
+  const winRate = row.games_played > 0
+    ? Math.round((row.wins / row.games_played) * 100)
+    : 0;
+  return {
+    id:          row.id,
+    name:        row.agent_name,
+    type:        "Quick Agent",
+    status:      "Offline",
+    winRate,
+    matches:     row.games_played,
+    updated:     new Date(row.updated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+    rank:        eloToRank(row.elo_rating),
+    elo:         row.elo_rating,
+    avgProfit:   0,
+    version:     "0.1.0",
+    created:     new Date(row.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+    active:      false,
+    description: row.description || `${row.strategy_type ?? "Quick"} agent. No matches played yet.`,
+    perf:        [50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50],
+  };
+}
+
+// ─── Mock Data (kept for reference) ───────────────────────────────────────────
 
 const INITIAL_AGENTS = [
   {
@@ -255,49 +291,135 @@ function ImportAgentModal({ onClose, onImport }) {
 
 // ─── Create Agent Modal ───────────────────────────────────────────────────────
 
-function CreateAgentModal({ onClose, onCreate }) {
-  const [name, setName]             = useState("");
-  const [description, setDescription] = useState("");
-  const [strategy, setStrategy]     = useState("GTO Solver");
+const CREATE_OPTIONS = [
+  {
+    key: "quick",
+    label: "Quick Agent",
+    desc: "Simple but competitive — get started fast with no configuration required.",
+  },
+  {
+    key: "strategy",
+    label: "Strategy Builder",
+    desc: "Visual rule-based editor. Flexible enough to build really strong agents.",
+  },
+  {
+    key: "botbluff",
+    label: "BotBluffLab",
+    desc: "Write your agent logic in code. The most advanced and expressive mode.",
+  },
+  {
+    key: "import",
+    label: "Import",
+    desc: "Connect an existing external API agent to BotBluff.",
+  },
+];
 
-  function handleCreate() {
-    if (!name.trim()) return;
-    onCreate({ name: name.trim(), description, strategy });
+function CreateAgentModal({ onClose, onCreate, onImportInstead }) {
+  const [step, setStep] = useState("pick");
+
+  function handlePick(key) {
+    if (key === "import") {
+      onImportInstead();
+    } else {
+      setStep(key);
+    }
   }
 
+  // ── Quick Agent — delegate to dedicated component ──
+  if (step === "quick") {
+    return (
+      <div className="al-modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+        <QuickAgent
+          onBack={() => setStep("pick")}
+          onClose={onClose}
+          onCreate={(data) => { onCreate(data); }}
+        />
+      </div>
+    );
+  }
+
+  // ── Picker ──
+  if (step === "pick") {
+    return (
+      <div className="al-modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+        <div className="al-modal">
+          <div className="al-modal-header">
+            <div>
+              <div className="al-modal-title">Create Agent</div>
+              <div className="al-modal-sub">Choose how you want to build your agent</div>
+            </div>
+            <button className="al-modal-close" onClick={onClose}>✕</button>
+          </div>
+          <div className="al-modal-body" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {CREATE_OPTIONS.map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => handlePick(opt.key)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  background: "#ffffff",
+                  border: "1.5px solid #e2e8f0",
+                  borderRadius: 8,
+                  padding: "14px 18px",
+                  cursor: "pointer",
+                  textAlign: "left",
+                  width: "100%",
+                  transition: "background 0.15s, border-color 0.15s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#ef4444";
+                  e.currentTarget.style.borderColor = "#ef4444";
+                  e.currentTarget.querySelector(".opt-label").style.color = "#ffffff";
+                  e.currentTarget.querySelector(".opt-desc").style.color = "rgba(255,255,255,0.75)";
+                  e.currentTarget.querySelector(".opt-arrow").style.color = "#ffffff";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "#ffffff";
+                  e.currentTarget.style.borderColor = "#e2e8f0";
+                  e.currentTarget.querySelector(".opt-label").style.color = "#0f172a";
+                  e.currentTarget.querySelector(".opt-desc").style.color = "#64748b";
+                  e.currentTarget.querySelector(".opt-arrow").style.color = "#94a3b8";
+                }}
+              >
+                <div>
+                  <div className="opt-label" style={{ color: "#0f172a", fontWeight: 600, fontSize: 14, marginBottom: 3, transition: "color 0.15s" }}>{opt.label}</div>
+                  <div className="opt-desc" style={{ color: "#64748b", fontSize: 12, lineHeight: 1.5, transition: "color 0.15s" }}>{opt.desc}</div>
+                </div>
+                <div className="opt-arrow" style={{ color: "#94a3b8", fontSize: 18, flexShrink: 0, marginLeft: 12, transition: "color 0.15s" }}>›</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Coming Soon (strategy / botbluff) ──
+  const opt = CREATE_OPTIONS.find((o) => o.key === step);
   return (
     <div className="al-modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="al-modal">
         <div className="al-modal-header">
           <div>
-            <div className="al-modal-title">Create Agent</div>
-            <div className="al-modal-sub">Configure a new poker AI agent</div>
+            <button
+              onClick={() => setStep("pick")}
+              style={{ background: "none", border: "none", color: "#64748b", fontSize: 12, cursor: "pointer", padding: 0, marginBottom: 4 }}
+            >
+              ← Back
+            </button>
+            <div className="al-modal-title">{opt?.label}</div>
+            <div className="al-modal-sub">{opt?.desc}</div>
           </div>
           <button className="al-modal-close" onClick={onClose}>✕</button>
         </div>
-
-        <div className="al-modal-body">
-          <div className="al-field">
-            <label className="al-label">Agent Name</label>
-            <input className="al-input" placeholder="e.g. AceBot v1" value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div className="al-field">
-            <label className="al-label">Description <span className="al-optional">(optional)</span></label>
-            <textarea className="al-input al-textarea" placeholder="Describe your agent's strategy..." value={description} onChange={(e) => setDescription(e.target.value)} />
-          </div>
-          <div className="al-field">
-            <label className="al-label">Strategy Type</label>
-            <select className="al-select" value={strategy} onChange={(e) => setStrategy(e.target.value)}>
-              {STRATEGY_TYPES.map((s) => <option key={s}>{s}</option>)}
-            </select>
-          </div>
+        <div className="al-modal-body" style={{ textAlign: "center", padding: "32px 0" }}>
+          <div style={{ color: "#f1f5f9", fontWeight: 600, fontSize: 16, marginBottom: 8 }}>Coming Soon</div>
+          <div style={{ color: "#64748b", fontSize: 13 }}>This mode is under construction. Check back soon!</div>
         </div>
-
         <div className="al-modal-footer">
-          <button className="al-btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="al-btn-primary" onClick={handleCreate} disabled={!name.trim()}>
-            Create Agent
-          </button>
+          <button className="al-btn-ghost" onClick={() => setStep("pick")}>Back</button>
         </div>
       </div>
     </div>
@@ -349,6 +471,10 @@ function AgentCard({ agent, colorIdx, onView, onTest }) {
           <div className="al-stat-num" style={{ fontSize: 10 }}>{agent.updated}</div>
           <div className="al-stat-lbl">Updated</div>
         </div>
+        <div className="al-stat">
+          <div className="al-stat-num" style={{ color: "#7c3aed" }}>{agent.elo ?? 300}</div>
+          <div className="al-stat-lbl">ELO</div>
+        </div>
       </div>
 
       <div className="al-card-actions" onClick={(e) => e.stopPropagation()}>
@@ -361,8 +487,10 @@ function AgentCard({ agent, colorIdx, onView, onTest }) {
 
 // ─── Agent List Page ──────────────────────────────────────────────────────────
 
-function AgentListPage({ agents, onView, onShowImport, onShowCreate, onTest }) {
-  const avgWin = Math.round(agents.reduce((s, a) => s + a.winRate, 0) / agents.length);
+function AgentListPage({ agents, loading, onView, onShowImport, onShowCreate, onTest }) {
+  const avgWin = agents.length > 0
+    ? Math.round(agents.reduce((s, a) => s + a.winRate, 0) / agents.length)
+    : 0;
   const activeAgent = agents.find((a) => a.active);
 
   return (
@@ -405,15 +533,26 @@ function AgentListPage({ agents, onView, onShowImport, onShowCreate, onTest }) {
 
       {/* Grid */}
       <div className="al-agent-grid">
-        {agents.map((agent, i) => (
-          <AgentCard
-            key={agent.id}
-            agent={agent}
-            colorIdx={i}
-            onView={() => onView(agent, i)}
-            onTest={() => onTest(agent)}
-          />
-        ))}
+        {loading ? (
+          <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "60px 0", color: "#64748b", fontSize: 14 }}>
+            Loading agents…
+          </div>
+        ) : agents.length === 0 ? (
+          <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "60px 0" }}>
+            <div style={{ color: "#94a3b8", fontSize: 14, marginBottom: 16 }}>No agents yet — create your first one</div>
+            <button className="al-btn-primary" onClick={onShowCreate}>+ Create Agent</button>
+          </div>
+        ) : (
+          agents.map((agent, i) => (
+            <AgentCard
+              key={agent.id}
+              agent={agent}
+              colorIdx={i}
+              onView={() => onView(agent, i)}
+              onTest={() => onTest(agent)}
+            />
+          ))
+        )}
       </div>
     </div>
   );
@@ -449,6 +588,7 @@ function AgentSidebar({ agent, colorIdx, onSetActive }) {
 
       <div className="al-sidebar-meta-list">
         {[
+          ["ELO", agent.elo ?? 300],
           ["Version", `v${agent.version}`],
           ["Created", agent.created],
           ["Updated", agent.updated],
@@ -458,7 +598,7 @@ function AgentSidebar({ agent, colorIdx, onSetActive }) {
             <span className="al-sidebar-meta-lbl">{lbl}</span>
             <span
               className="al-sidebar-meta-val"
-              style={lbl === "Rank" ? { color: RANK_COLORS[val] ?? "#374151" } : {}}
+              style={lbl === "Rank" ? { color: RANK_COLORS[val] ?? "#374151" } : lbl === "ELO" ? { color: "#7c3aed", fontWeight: 700 } : {}}
             >
               {val}
             </span>
@@ -560,13 +700,29 @@ function AgentDetailPage({ agents, agentId, colorIdx, onBack, onSetActive, onTes
 // ─── Main Export ──────────────────────────────────────────────────────────────
 
 export default function AgentLab({ onBackHome, onTestAgent }) {
-  const [agents, setAgents]           = useState(INITIAL_AGENTS);
+  const [agents, setAgents]           = useState([]);
+  const [loading, setLoading]         = useState(true);
   const [view, setView]               = useState("list");
   const [selectedId, setSelectedId]   = useState(null);
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [showImport, setShowImport]   = useState(false);
   const [showCreate, setShowCreate]   = useState(false);
   const [toasts, setToasts]           = useState([]);
+
+  async function fetchAgents() {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setLoading(false); return; }
+    const { data, error } = await supabase
+      .from("user_agents")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    if (!error && data) setAgents(data.map(mapDbAgent));
+    setLoading(false);
+  }
+
+  useEffect(() => { fetchAgents(); }, []);
 
   function toast(message, icon = "✅") {
     const id = Date.now();
@@ -608,24 +764,8 @@ export default function AgentLab({ onBackHome, onTestAgent }) {
     toast("Agent imported successfully", "✅");
   }
 
-  function handleCreate({ name, description, strategy }) {
-    const newAgent = {
-      id: Date.now(),
-      name,
-      type: "Local Agent",
-      status: "Offline",
-      winRate: 0,
-      matches: 0,
-      updated: "just now",
-      rank: "Unranked",
-      avgProfit: 0,
-      version: "0.1.0",
-      created: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-      active: false,
-      description: description || `${strategy} agent. No matches played yet.`,
-      perf: [50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50],
-    };
-    setAgents((prev) => [...prev, newAgent]);
+  async function handleCreate({ name }) {
+    await fetchAgents();
     setShowCreate(false);
     toast(`"${name}" created`, "🤖");
   }
@@ -666,6 +806,7 @@ export default function AgentLab({ onBackHome, onTestAgent }) {
       {view === "list" ? (
         <AgentListPage
           agents={agents}
+          loading={loading}
           onView={handleView}
           onShowImport={() => setShowImport(true)}
           onShowCreate={() => setShowCreate(true)}
@@ -687,7 +828,11 @@ export default function AgentLab({ onBackHome, onTestAgent }) {
         <ImportAgentModal onClose={() => setShowImport(false)} onImport={handleImport} />
       )}
       {showCreate && (
-        <CreateAgentModal onClose={() => setShowCreate(false)} onCreate={handleCreate} />
+        <CreateAgentModal
+          onClose={() => setShowCreate(false)}
+          onCreate={handleCreate}
+          onImportInstead={() => { setShowCreate(false); setShowImport(true); }}
+        />
       )}
 
       {/* Toasts */}
