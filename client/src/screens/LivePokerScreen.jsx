@@ -577,6 +577,223 @@ function Lobby({ onStart }) {
   )
 }
 
+// ── Seat chip (player avatar on the table) ─────────────────────────────────
+
+const SEAT_PLAYER_COLORS = ["#6366f1", "#f59e0b", "#10b981", "#ec4899", "#0ea5e9", "#a855f7"]
+
+// Default human silhouette avatar — same for every player at the table.
+// Color ring distinguishes players; the shape is always a person.
+function PersonAvatar({ color, size = 46, isWinner, isToAct, isYou }) {
+  return (
+    <div style={{ position: "relative", flexShrink: 0, width: size, height: size }}>
+      {/* Active-turn glow ring */}
+      {isToAct && (
+        <div style={{
+          position: "absolute", inset: -7, borderRadius: "50%",
+          border: "2px solid #fcd34d",
+          boxShadow: "0 0 16px rgba(252,211,77,0.65)",
+          animation: "livePulse 1s ease-in-out infinite",
+          pointerEvents: "none",
+        }} />
+      )}
+      {/* Circular body */}
+      <div style={{
+        width: size, height: size, borderRadius: "50%",
+        background: `linear-gradient(150deg, ${color}cc 0%, ${color}44 100%)`,
+        border: `2.5px solid ${isWinner ? "#10b981" : isYou ? color : `${color}88`}`,
+        boxShadow: isWinner
+          ? "0 0 20px rgba(16,185,129,0.55)"
+          : `0 0 12px ${color}55`,
+        overflow: "hidden",
+        transition: "all 0.3s",
+        display: "flex",
+        alignItems: "flex-end",
+        justifyContent: "center",
+      }}>
+        {/* Human silhouette — head + shoulders */}
+        <svg viewBox="0 0 46 46" width={size} height={size} style={{ display: "block", flexShrink: 0 }}>
+          {/* Head */}
+          <circle cx="23" cy="16" r="9" fill="rgba(255,255,255,0.90)" />
+          {/* Shoulders / torso — wide ellipse rising from the bottom */}
+          <ellipse cx="23" cy="46" rx="16" ry="13" fill="rgba(255,255,255,0.82)" />
+        </svg>
+      </div>
+    </div>
+  )
+}
+
+function SeatChip({ player, colorIdx, isYou, isYourAgent, showCards, lastAction, isWinner, isToAct }) {
+  const color  = (isYou || isYourAgent) ? "#06b6d4" : SEAT_PLAYER_COLORS[colorIdx % SEAT_PLAYER_COLORS.length]
+  const folded = player?.hasFolded
+  const cards  = player?.holeCards ?? []
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, opacity: folded ? 0.38 : 1, transition: "all 0.3s" }}>
+
+      {/* Mini cards — shown when hole cards are known */}
+      {cards.length === 2 && (
+        <div style={{ display: "flex", gap: 3, marginBottom: 2 }}>
+          {showCards
+            ? cards.map((c, i) => <CardFace key={i} card={c} size="sm" />)
+            : [0, 1].map((i) => <CardBack key={i} size="sm" />)
+          }
+        </div>
+      )}
+
+      {/* Human avatar — same silhouette for everyone, color ring distinguishes players */}
+      <PersonAvatar
+        color={color}
+        isWinner={isWinner}
+        isToAct={isToAct}
+        isYou={isYou || isYourAgent}
+      />
+
+      {/* Name + stack + last action box */}
+      <div style={{
+        background: "rgba(0,0,0,0.78)", borderRadius: 7, padding: "4px 8px",
+        textAlign: "center", backdropFilter: "blur(8px)",
+        border: `1px solid ${color}20`, minWidth: 82,
+      }}>
+        <div style={{
+          fontFamily: '"Press Start 2P", monospace', fontSize: 6,
+          color: (isYou || isYourAgent) ? "#67e8f9" : "rgba(255,255,255,0.65)",
+          marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+        }}>
+          {isYourAgent ? "YOU · RMX" : isYou ? "YOU" : player.id}
+        </div>
+        <div style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 9, color: isWinner ? "#10b981" : "#fcd34d" }}>
+          {player.stack.toLocaleString()}
+        </div>
+        {lastAction && (
+          <div style={{
+            marginTop: 4, fontFamily: "Inter,sans-serif", fontSize: 10,
+            color: "rgba(255,255,255,0.7)",
+            background: "rgba(255,255,255,0.07)", borderRadius: 4, padding: "2px 5px",
+          }}>
+            {lastAction}
+          </div>
+        )}
+      </div>
+
+      {isWinner && (
+        <div style={{
+          fontFamily: '"Press Start 2P", monospace', fontSize: 6, color: "#10b981",
+          background: "rgba(16,185,129,0.2)", border: "1px solid rgba(16,185,129,0.45)",
+          borderRadius: 4, padding: "2px 7px",
+        }}>WIN</div>
+      )}
+    </div>
+  )
+}
+
+// ── Poker table view — all players seated around the felt ────────────────────
+
+// Seat positions [left%, top%] for up to 5 bots, arranged in the top arc.
+// Chips use transform:translate(-50%,0) so they hang DOWN from the anchor point.
+const SEAT_LAYOUT = [
+  [{ l: 50, t: 11 }],
+  [{ l: 26, t: 13 }, { l: 74, t: 13 }],
+  [{ l: 14, t: 21 }, { l: 50, t: 9  }, { l: 86, t: 21 }],
+  [{ l: 9,  t: 28 }, { l: 33, t: 11 }, { l: 67, t: 11 }, { l: 91, t: 28 }],
+  [{ l: 5,  t: 36 }, { l: 24, t: 13 }, { l: 50, t: 9  }, { l: 76, t: 13 }, { l: 95, t: 36 }],
+]
+
+function PokerTableView({ players, community, pot, isSpectating, lastActions, winnerIds, toActId }) {
+  const yourId    = isSpectating ? "rmx-you" : "you"
+  const youPlayer = players.find(p => p.id === yourId)
+  const bots      = players.filter(p => p.id !== yourId)
+  const n         = Math.min(5, bots.length)
+  const positions = SEAT_LAYOUT[n - 1] ?? SEAT_LAYOUT[4]
+
+  return (
+    <div style={{ position: "relative", width: "100%", height: 520, flexShrink: 0 }}>
+
+      {/* Felt ellipse */}
+      <div style={{
+        position: "absolute", left: "50%", top: "47%",
+        transform: "translate(-50%, -50%)",
+        width: "66%", height: 270,
+        background: "radial-gradient(ellipse at center, #0a6b4a 0%, #065538 55%, #033020 100%)",
+        borderRadius: "50%",
+        border: "12px solid #4b5563",
+        outline: "4px solid #374151",
+        boxShadow: "0 8px 80px rgba(0,0,0,0.8), inset 0 0 80px rgba(0,0,0,0.5)",
+      }} />
+
+      {/* Pot display */}
+      <div style={{
+        position: "absolute", left: "50%", top: "30%",
+        transform: "translateX(-50%)", zIndex: 5,
+        display: "flex", alignItems: "center", gap: 6,
+        background: "rgba(0,0,0,0.65)", padding: "5px 16px", borderRadius: 20,
+        border: "1px solid rgba(255,255,255,0.12)", backdropFilter: "blur(6px)",
+        whiteSpace: "nowrap",
+      }}>
+        <span style={{ fontSize: 14 }}>🪙</span>
+        <span style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 10, color: "#fcd34d" }}>
+          POT: {pot.toLocaleString()}
+        </span>
+      </div>
+
+      {/* Community cards */}
+      <div style={{
+        position: "absolute", left: "50%", top: "47%",
+        transform: "translate(-50%, -50%)",
+        zIndex: 5, display: "flex", gap: 8, alignItems: "center",
+      }}>
+        {[0, 1, 2, 3, 4].map(i => {
+          const card = (community ?? [])[i]
+          return card ? <CardFace key={i} card={card} /> : <CardSlot key={i} />
+        })}
+      </div>
+
+      {/* Bot seat chips — positioned around the top arc */}
+      {bots.slice(0, 5).map((bot, i) => {
+        const pos = positions[i] ?? positions[positions.length - 1]
+        return (
+          <div key={bot.id} style={{
+            position: "absolute",
+            left: `${pos.l}%`, top: `${pos.t}%`,
+            transform: "translate(-50%, 0)",
+            zIndex: 6,
+          }}>
+            <SeatChip
+              player={bot}
+              colorIdx={i}
+              isYourAgent={isSpectating && bot.id === "rmx-you"}
+              showCards={isSpectating && bot.id === "rmx-you"}
+              lastAction={lastActions[bot.id] ?? null}
+              isWinner={winnerIds.has(bot.id)}
+              isToAct={bot.id === toActId}
+            />
+          </div>
+        )
+      })}
+
+      {/* Your seat chip — bottom center, hangs upward */}
+      {youPlayer && (
+        <div style={{
+          position: "absolute",
+          left: "50%", bottom: "2%",
+          transform: "translate(-50%, 0)",
+          zIndex: 6,
+        }}>
+          <SeatChip
+            player={youPlayer}
+            colorIdx={-1}
+            isYou={!isSpectating}
+            isYourAgent={isSpectating}
+            showCards={isSpectating}
+            lastAction={lastActions[yourId] ?? null}
+            isWinner={winnerIds.has(yourId)}
+            isToAct={yourId === toActId}
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main screen ─────────────────────────────────────────────────────────────
 
 export default function LivePokerScreen({ setScreen }) {
@@ -765,13 +982,11 @@ export default function LivePokerScreen({ setScreen }) {
   const isMyTurn   = snap?.isHumanTurn && !snap?.handOver
   // handOver is already declared above (used in effects)
 
-  // Figure out last action per player
+  // Figure out last action per player (all players, including human)
   const lastActions = {}
   const rawLog = snap?.log ?? []
   for (const e of rawLog) {
-    if (e.playerId !== HUMAN_ID) {
-      lastActions[e.playerId] = e.amount ? `${e.action} ${e.amount}` : e.action
-    }
+    lastActions[e.playerId] = e.amount ? `${e.action} ${e.amount}` : e.action
   }
 
   // Winner set
@@ -827,106 +1042,96 @@ export default function LivePokerScreen({ setScreen }) {
       {/* ── Main content ─────────────────────────────────────────────────── */}
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
 
-        {/* Left: bots */}
-        <div style={{ width: 220, padding: "16px 12px", display: "flex", flexDirection: "column", gap: 10, overflowY: "auto", borderRight: "1px solid rgba(255,255,255,0.05)", flexShrink: 0 }}>
-          {botPlayers.map((p, i) => (
-            <BotPanel
-              key={p.id}
-              player={p}
-              lastAction={lastActions[p.id] ?? null}
-              isWinner={winnerIds.has(p.id)}
-              startingStack={startingStack.current}
-              colorIdx={i}
-              isYourAgent={isSpectating && p.id === "rmx-you"}
-              showCards={isSpectating && p.id === "rmx-you"}
-            />
-          ))}
-        </div>
+        {/* Centre: poker table + controls */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflowY: "auto" }}>
 
-        {/* Centre: table + your hand */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between", padding: "24px 16px", gap: 16, overflowY: "auto" }}>
+          {/* All players seated around the table */}
+          <PokerTableView
+            players={players}
+            community={community}
+            pot={pot}
+            isSpectating={isSpectating}
+            lastActions={lastActions}
+            winnerIds={winnerIds}
+            toActId={state && !handOver ? state.players[state.toActIndex]?.id : null}
+          />
 
-          {/* Pot */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(0,0,0,0.4)", padding: "6px 18px", borderRadius: 20, border: "1px solid rgba(255,255,255,0.1)" }}>
-            <span style={{ fontSize: 15 }}>🪙</span>
-            <span style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 11, color: "#fcd34d" }}>POT: {pot.toLocaleString()}</span>
-          </div>
+          {/* Controls below the table */}
+          <div style={{ padding: "0 24px 24px", display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
 
-          {/* Community board */}
-          <CommunityBoard cards={community} />
+            {/* Winners banner */}
+            {handOver && snap?.winners && (
+              <WinnersBanner
+                winners={snap.winners}
+                onNextHand={isSpectating ? null : () => dealHand(gameId)}
+              />
+            )}
 
-          {/* Winners banner — in spectator mode hide "Deal Next Hand" button (auto-dealt) */}
-          {handOver && snap?.winners && (
-            <WinnersBanner
-              winners={snap.winners}
-              onNextHand={isSpectating ? null : () => dealHand(gameId)}
-            />
-          )}
+            {/* Your hole cards — large display in human mode */}
+            {!isSpectating && humanP && (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+                <div style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 8, color: "rgba(255,255,255,0.4)", letterSpacing: 1 }}>YOUR HAND</div>
+                <div style={{ display: "flex", gap: 10 }}>
+                  {humanP.holeCards?.length === 2
+                    ? humanP.holeCards.map((c, i) => <CardFace key={i} card={c} size="lg" />)
+                    : [0, 1].map((i) => <CardSlot key={i} size="lg" />)
+                  }
+                </div>
+                {humanP.hasFolded && <div style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 8, color: "#ef4444" }}>FOLDED</div>}
+                {humanP.isAllIn  && <div style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 8, color: "#f59e0b" }}>ALL-IN</div>}
+                {humanP.betThisStreet > 0 && !handOver && (
+                  <div style={{ fontFamily: "Inter,sans-serif", fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
+                    Bet this street: {humanP.betThisStreet}
+                  </div>
+                )}
+              </div>
+            )}
 
-          {/* Your hole cards — only in human mode */}
-          {!isSpectating && humanP && (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-              <div style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 8, color: "rgba(255,255,255,0.4)", letterSpacing: 1 }}>YOUR HAND</div>
-              <div style={{ display: "flex", gap: 10 }}>
-                {humanP.holeCards?.length === 2
-                  ? humanP.holeCards.map((c, i) => <CardFace key={i} card={c} size="lg" />)
-                  : [0, 1].map((i) => <CardSlot key={i} size="lg" />)
+            {/* Action buttons / deal button / spectator countdown */}
+            {isSpectating ? (
+              <div style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 9, color: "rgba(6,182,212,0.7)", textAlign: "center" }}>
+                {loading
+                  ? "Dealing…"
+                  : handOver
+                    ? paused
+                      ? "⏸ Paused"
+                      : (
+                        <span>
+                          Next hand in{" "}
+                          <span style={{ color: "#67e8f9", fontVariantNumeric: "tabular-nums" }}>
+                            {countdown !== null ? countdown.toFixed(1) : "0.0"}
+                          </span>
+                          s
+                        </span>
+                      )
+                    : "Watching agents play…"
                 }
               </div>
-              {humanP.hasFolded && <div style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 8, color: "#ef4444" }}>FOLDED</div>}
-              {humanP.isAllIn && <div style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 8, color: "#f59e0b" }}>ALL-IN</div>}
-              {humanP.betThisStreet > 0 && !handOver && (
-                <div style={{ fontFamily: "Inter,sans-serif", fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
-                  Bet this street: {humanP.betThisStreet}
-                </div>
-              )}
-            </div>
-          )}
+            ) : !state ? (
+              <button
+                onClick={() => dealHand(gameId)}
+                disabled={loading}
+                style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 10, background: "linear-gradient(135deg, #e01b2d, #ef4444)", color: "#fff", border: "none", borderRadius: 10, padding: "14px 32px", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.6 : 1, boxShadow: "0 0 20px rgba(224,27,45,0.4)" }}
+              >
+                {loading ? "Dealing…" : "🃏 Deal Hand"}
+              </button>
+            ) : isMyTurn ? (
+              <div style={{ width: "100%", maxWidth: 520 }}>
+                <div style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 9, color: "#fcd34d", marginBottom: 10, textAlign: "center" }}>YOUR TURN</div>
+                <ActionButtons legalActions={snap?.legalActions} onAction={handleAction} disabled={loading} />
+              </div>
+            ) : handOver ? null : (
+              <div style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 9, color: "rgba(255,255,255,0.3)" }}>
+                {loading ? "Processing…" : "Waiting for bots…"}
+              </div>
+            )}
 
-          {/* Action buttons / deal button / spectator status */}
-          {isSpectating ? (
-            <div style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 9, color: "rgba(6,182,212,0.7)", textAlign: "center" }}>
-              {loading
-                ? "Dealing…"
-                : handOver
-                  ? paused
-                    ? "⏸ Paused"
-                    : (
-                      <span>
-                        Next hand in{" "}
-                        <span style={{ color: "#67e8f9", fontVariantNumeric: "tabular-nums" }}>
-                          {countdown !== null ? countdown.toFixed(1) : "0.0"}
-                        </span>
-                        s
-                      </span>
-                    )
-                  : "Watching agents play…"
-              }
-            </div>
-          ) : !state ? (
-            <button
-              onClick={() => dealHand(gameId)}
-              disabled={loading}
-              style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 10, background: "linear-gradient(135deg, #e01b2d, #ef4444)", color: "#fff", border: "none", borderRadius: 10, padding: "14px 32px", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.6 : 1, boxShadow: "0 0 20px rgba(224,27,45,0.4)" }}
-            >
-              {loading ? "Dealing…" : "🃏 Deal Hand"}
-            </button>
-          ) : isMyTurn ? (
-            <div style={{ width: "100%", maxWidth: 500 }}>
-              <div style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 9, color: "#fcd34d", marginBottom: 10, textAlign: "center" }}>YOUR TURN</div>
-              <ActionButtons legalActions={snap?.legalActions} onAction={handleAction} disabled={loading} />
-            </div>
-          ) : handOver ? null : (
-            <div style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 9, color: "rgba(255,255,255,0.3)" }}>
-              {loading ? "Processing…" : "Waiting for bots…"}
-            </div>
-          )}
-
-          {error && (
-            <div style={{ fontFamily: "Inter,sans-serif", fontSize: 12, color: "#f87171", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 8, padding: "10px 16px", maxWidth: 400, textAlign: "center" }}>
-              {error}
-            </div>
-          )}
+            {error && (
+              <div style={{ fontFamily: "Inter,sans-serif", fontSize: 12, color: "#f87171", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 8, padding: "10px 16px", maxWidth: 420, textAlign: "center" }}>
+                {error}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Right: action log */}
