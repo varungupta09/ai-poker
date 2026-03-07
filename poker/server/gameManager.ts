@@ -14,6 +14,7 @@
 import { v4 as uuidv4 } from "uuid"
 import { Agent, CallAgent, FoldAgent, RandomAgent, getPublicState } from "../agent"
 import { RmxAgent } from "../../dev_agents/rm/rmx"
+import { callAmount } from "../betting"
 import {
   applyAction,
   getLegalActions,
@@ -43,6 +44,7 @@ export interface ActionLogEntry {
   street: string
   playerId: string
   action: string
+  /** Chips put in this action (0 for fold/check; toCall for call; increment for bet/raise) */
   amount?: number
 }
 
@@ -178,12 +180,20 @@ function runAgents(session: GameSession): void {
 
     const obs = getPublicState(session.state, toActId)
     const action = agent.decide(obs, legal)
+    const player = session.state.players[session.state.toActIndex]
 
+    // Log chips put in (for replay / match events): call = toCall, bet/raise = increment, fold/check = 0
+    let chipsPutIn = 0
+    if (action.type === ActionType.Call) {
+      chipsPutIn = callAmount(player, session.state.currentBet)
+    } else if (action.type === ActionType.Bet || action.type === ActionType.Raise) {
+      chipsPutIn = (action.amount ?? 0) - player.betThisStreet
+    }
     session.log.push({
       street: session.state.street,
       playerId: toActId,
       action: action.type,
-      amount: action.amount,
+      amount: chipsPutIn,
     })
 
     session.state = applyAction(session.state, action)
@@ -290,11 +300,14 @@ export function startHand(session: GameSession): RoundSnapshot {
   session.log = []
   session.handOver = false
 
-  // Build seat list from persistent stacks; auto-rebuy busted players
+  // Build seat list from persistent stacks. Only auto-rebuy when a human is
+  // playing (so they can keep playing). In agent-vs-agent test matches, do not
+  // rebuy — busted players stay at 0 and chip total stays constant.
   const minPlayable = session.config.bigBlind * 2
+  const allowRebuy = session.humanId !== null
   const seats = session.specs.map((spec) => {
     let stack = session.stacks.get(spec.id) ?? spec.startingStack
-    if (stack < minPlayable) {
+    if (stack < minPlayable && allowRebuy) {
       stack = spec.startingStack
     }
     session.stacks.set(spec.id, stack)
@@ -335,11 +348,18 @@ export function applyHumanAction(session: GameSession, action: Action): RoundSna
     )
   }
 
+  const player = session.state.players[session.state.toActIndex]
+  let chipsPutIn = 0
+  if (action.type === ActionType.Call) {
+    chipsPutIn = callAmount(player, session.state.currentBet)
+  } else if (action.type === ActionType.Bet || action.type === ActionType.Raise) {
+    chipsPutIn = (action.amount ?? 0) - player.betThisStreet
+  }
   session.log.push({
     street: session.state.street,
     playerId: toActId,
     action: action.type,
-    amount: action.amount,
+    amount: chipsPutIn,
   })
 
   session.state = applyAction(session.state, action)

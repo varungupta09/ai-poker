@@ -449,6 +449,10 @@ function LegacyLeaderboardScreen({ onBack }) {
 }
 
 // ── App ───────────────────────────────────────────────────────────────────────
+// Ref set by QueueScreen before navigating to match so MatchScreen gets correct
+// events + testMatch flag regardless of state batching (fixes "Next game" not pausing).
+const matchDataRef = { current: null };
+
 export default function App() {
   const [screen, setScreen]         = useState("home"); // "home" | "online" | "offline" | "leaderboards" | "play" | "queue" | "match" | "result"
   const [screenParams, setScreenParams] = useState({});
@@ -588,7 +592,15 @@ export default function App() {
   }
 
   if (screen === "agents") {
-    return <AgentLab onBackHome={() => setScreen("home")} onTestAgent={() => setScreen("play")} />;
+    return (
+      <AgentLab
+        onBackHome={() => setScreen("home")}
+        onTestAgent={(agent) => {
+          setScreenParams((prev) => ({ ...prev, testAgent: agent }));
+          setScreen("play");
+        }}
+      />
+    );
   }
 
   if (screen === "play") {
@@ -597,6 +609,7 @@ export default function App() {
         setScreen={setScreen}
         setScreenParams={setScreenParams}
         onBack={() => setScreen("agents")}
+        screenParams={screenParams}
       />
     );
   }
@@ -607,19 +620,25 @@ export default function App() {
         setScreen={setScreen}
         setScreenParams={setScreenParams}
         screenParams={screenParams}
+        matchDataRef={matchDataRef}
       />
     );
   }
 
   if (screen === "match") {
+    const data = matchDataRef.current;
     return (
       <MatchScreen
         setScreen={setScreen}
         setScreenParams={setScreenParams}
         screenParams={screenParams}
+        eventsOverride={data?.events}
+        isTestMatchOverride={data?.testMatch}
       />
     );
   }
+
+  if (screen !== "match") matchDataRef.current = null;
 
   if (screen === "result") {
     return (

@@ -245,15 +245,36 @@ const HAND_OPTIONS = [
   { value: 100, label: "100 hands", sub: "Full session · Soon", enabled: false },
 ];
 
-export default function PlayScreen({ setScreen, setScreenParams, onBack }) {
+// Normalize agent to display shape (name, avatar, color, style) for MatchScreen
+function toDisplayAgent(agent) {
+  if (!agent) return null;
+  const name = agent.name || "Agent";
+  const initials = name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "?";
+  return {
+    name,
+    avatar: agent.avatar ?? initials,
+    color: agent.color ?? "#e01b2d",
+    style: agent.style ?? agent.type ?? "Custom",
+  };
+}
+
+export default function PlayScreen({ setScreen, setScreenParams, onBack, screenParams }) {
   const [selectedMode, setSelectedMode] = useState("test");
   const [selectedOpponent, setSelectedOpponent] = useState(opponents[0].id);
   const [selectedHands, setSelectedHands] = useState(20);
 
   const opponent = opponents.find((o) => o.id === selectedOpponent) || opponents[0];
+  const testAgent = screenParams?.testAgent ?? null;
+  const displayAgent = testAgent ? toDisplayAgent(testAgent) : toDisplayAgent(activeAgent);
 
   function handleStart() {
-    setScreenParams({ matchId: "mock-1", opponent, hands: selectedHands });
+    setScreenParams({
+      matchId: "mock-1",
+      opponent,
+      hands: selectedHands,
+      agent: testAgent ? toDisplayAgent(testAgent) : toDisplayAgent(activeAgent),
+      testAgent: testAgent ?? null,
+    });
     setScreen("queue");
   }
 
@@ -323,8 +344,8 @@ export default function PlayScreen({ setScreen, setScreenParams, onBack }) {
             color: "rgba(255,255,255,0.35)",
             marginBottom: 10,
             letterSpacing: 1,
-          }}>ACTIVE AGENT</div>
-          <AgentHeaderCard agent={activeAgent} />
+          }}>YOUR AGENT</div>
+          <AgentHeaderCard agent={{ ...activeAgent, ...displayAgent }} />
         </div>
 
         {/* Two-column layout */}

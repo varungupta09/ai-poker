@@ -438,7 +438,7 @@ const BOT_OPTIONS = [
   { type: "rmx",    label: "RM7X" },
 ]
 
-function Lobby({ onStart }) {
+function Lobby({ onStart, serverOnline }) {
   const [playerCount, setPlayerCount] = useState(3)
   const [smallBlind, setSmallBlind]   = useState(10)
   const [bigBlind, setBigBlind]       = useState(20)
@@ -506,6 +506,14 @@ function Lobby({ onStart }) {
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
       minHeight: "80vh", gap: 32,
     }}>
+      {serverOnline === false && (
+        <div style={{
+          background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.5)", borderRadius: 10,
+          padding: "12px 20px", maxWidth: 420, fontFamily: "Inter,sans-serif", fontSize: 12, color: "#fca5a5", textAlign: "center",
+        }}>
+          Game server is not running. Start it in a terminal: <code style={{ background: "rgba(0,0,0,0.3)", padding: "2px 6px", borderRadius: 4 }}>cd poker/server && npm run dev</code>
+        </div>
+      )}
       <div>
         <div style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 14, color: "#fff", textAlign: "center", marginBottom: 8 }}>
           POKER vs AI BOTS
@@ -907,6 +915,7 @@ export default function LivePokerScreen({ setScreen }) {
   const [countdown,    setCountdown]    = useState(null)
   const [agentConfig,  setAgentConfig]  = useState(null)
   const [agentName,    setAgentName]    = useState(null)
+  const [serverOnline, setServerOnline] = useState(null) // null = unknown, true/false after check
 
   // Build display log from snap.log
   function buildDisplayLog(rawLog, street) {
@@ -923,15 +932,49 @@ export default function LivePokerScreen({ setScreen }) {
     return entries
   }
 
-  async function apiPost(path, body = {}) {
-    const res = await fetch(`${API}${path}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    })
-    const json = await res.json()
-    if (!res.ok) throw new Error(json.error ?? "Server error")
-    return json
+  const API_TIMEOUT_MS = 15000
+
+  // Check if game server is reachable (when in lobby)
+  useEffect(() => {
+    if (gameId) return
+    let cancelled = false
+    const controller = new AbortController()
+    const id = setTimeout(() => controller.abort(), 5000)
+    fetch(`${API}/health`, { signal: controller.signal })
+      .then((r) => r.ok)
+      .then((ok) => { if (!cancelled) setServerOnline(ok) })
+      .catch(() => { if (!cancelled) setServerOnline(false) })
+      .finally(() => clearTimeout(id))
+    return () => { cancelled = true; controller.abort() }
+  }, [gameId])
+
+  async function apiPost(path, body = {}, options = {}) {
+    const timeout = options.timeout ?? API_TIMEOUT_MS
+    const controller = new AbortController()
+    const id = setTimeout(() => controller.abort(), timeout)
+    try {
+      const res = await fetch(`${API}${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      })
+      clearTimeout(id)
+      const text = await res.text()
+      let json = {}
+      try {
+        json = text ? JSON.parse(text) : {}
+      } catch (_) {
+        if (!res.ok) throw new Error("Game server returned an error. Is the correct server running on port 3001?")
+      }
+      if (!res.ok) throw new Error(json.error ?? "Server error")
+      return json
+    } catch (e) {
+      clearTimeout(id)
+      if (e.name === "AbortError") throw new Error("Game server took too long to respond. Is it running?")
+      if (e.message === "Failed to fetch" || e.message?.includes("NetworkError")) throw new Error("Cannot reach game server. Start it with: cd poker/server && npm run dev")
+      throw e
+    }
   }
 
   // ── Create game from lobby settings ──────────────────────────────────────
@@ -1093,8 +1136,11 @@ export default function LivePokerScreen({ setScreen }) {
           {error && <span style={{ fontFamily: "Inter,sans-serif", fontSize: 12, color: "#f87171", marginLeft: 12 }}>{error}</span>}
         </div>
         {loading
-          ? <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "80vh", fontFamily: '"Press Start 2P", monospace', fontSize: 10, color: "rgba(255,255,255,0.4)" }}>Connecting to server…</div>
-          : <Lobby onStart={handleLobbyStart} />
+          ? <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "80vh", gap: 16, fontFamily: '"Press Start 2P", monospace', fontSize: 10, color: "rgba(255,255,255,0.4)" }}>
+            <div>Connecting to server…</div>
+            <div style={{ fontSize: 8, color: "rgba(255,255,255,0.3)" }}>If this hangs, start the server: cd poker/server && npm run dev</div>
+          </div>
+          : <Lobby onStart={handleLobbyStart} serverOnline={serverOnline} />
         }
       </div>
     )

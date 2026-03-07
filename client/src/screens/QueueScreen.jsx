@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { activeAgent } from "../mocks/mockAgents.js";
-import { runEngineMatch } from "../lib/pokerEngineClient.js";
+import { runPokerGameMatch } from "../lib/pokerEngineClient.js";
 
 // ─── Queue Toast ──────────────────────────────────────────────────────────────
 
@@ -48,8 +48,23 @@ function FoundToast({ opponent, visible }) {
 
 // ─── Queue Screen ─────────────────────────────────────────────────────────────
 
-export default function QueueScreen({ setScreen, setScreenParams, screenParams }) {
+// Map opponent id to poker engine agent type for the game server
+function opponentToEngineType(opponent) {
+  if (!opponent?.id) return "random";
+  const map = { randombot: "random", tightbot: "fold", aggrobot: "rmx" };
+  return map[opponent.id] ?? "random";
+}
+
+// Map user's agent to engine type (e.g. Quick Agent / strategy_type from DB)
+function agentToEngineType(agent) {
+  if (!agent) return "random";
+  if (agent.strategy_type === "Quick" || agent.type === "Quick Agent") return "rmx";
+  return "random";
+}
+
+export default function QueueScreen({ setScreen, setScreenParams, screenParams, matchDataRef }) {
   const opponent = screenParams?.opponent;
+  const agent = screenParams?.agent;
   const numHands = Math.min(screenParams?.hands ?? 3, 10);
   const [progress, setProgress] = useState(0);
   const [phase, setPhase] = useState("searching"); // "searching" | "found" | "loading"
@@ -59,17 +74,23 @@ export default function QueueScreen({ setScreen, setScreenParams, screenParams }
   const engineEventsRef = useRef(null);
   const rafRef = useRef(null);
   const startRef = useRef(null);
+  const hit100AtRef = useRef(null);
 
   const TOTAL_MS = 5000;
+  const MAX_WAIT_AT_100_MS = 4000;
+  const displayAgent = agent ?? { name: activeAgent.name, elo: activeAgent.elo };
 
   engineEventsRef.current = engineEvents;
 
-  // Run real poker engine and build events for MatchScreen
+  // Run real poker engine (poker game server) and build events for MatchScreen
   useEffect(() => {
-    runEngineMatch(numHands)
+    runPokerGameMatch(numHands, {
+      agentA: agentToEngineType(screenParams?.testAgent ?? null),
+      agentB: opponentToEngineType(opponent),
+    })
       .then((events) => setEngineEvents(events))
       .catch(() => setEngineEvents([]));
-  }, [numHands]);
+  }, [numHands, opponent?.id, screenParams?.testAgent]);
 
   useEffect(() => {
     startRef.current = performance.now();
@@ -90,9 +111,29 @@ export default function QueueScreen({ setScreen, setScreenParams, screenParams }
       if (pct < 100) {
         rafRef.current = requestAnimationFrame(tick);
       } else {
+        if (hit100AtRef.current == null) hit100AtRef.current = now;
         const events = engineEventsRef.current;
-        setScreenParams((prev) => ({ ...prev, events: events ?? undefined }));
-        setTimeout(() => setScreen("match"), 200);
+        const waitedLongEnough = now - hit100AtRef.current >= MAX_WAIT_AT_100_MS;
+        if (events?.length) {
+          if (matchDataRef) {
+            matchDataRef.current = { events, testMatch: true };
+          }
+          setScreenParams((prev) => ({ ...prev, events, testMatch: true }));
+          setScreen("match");
+        } else if (waitedLongEnough) {
+          const passEvents = events?.length ? events : undefined;
+          if (matchDataRef) {
+            matchDataRef.current = { events: passEvents, testMatch: !!(events?.length) };
+          }
+          setScreenParams((prev) => ({
+            ...prev,
+            events: passEvents,
+            testMatch: !!(events?.length),
+          }));
+          setScreen("match");
+        } else {
+          rafRef.current = requestAnimationFrame(tick);
+        }
       }
     }
 
@@ -226,8 +267,8 @@ export default function QueueScreen({ setScreen, setScreenParams, screenParams }
         textAlign: "center",
       }}>
         {phase !== "found"
-          ? `${activeAgent.name} · ${activeAgent.elo} ELO`
-          : `Matched with ${opponent?.name} · ${opponent?.elo} ELO`}
+          ? `${displayAgent.name} · ${displayAgent.elo ?? activeAgent.elo} ELO`
+          : `Matched with ${opponent?.name} · ${opponent?.elo ?? "—"} ELO`}
       </div>
 
       {/* Progress bar */}

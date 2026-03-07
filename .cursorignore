@@ -1,0 +1,10 @@
+# Environment and secrets — do not read or index
+.env
+.env.local
+.env.*.local
+*.env
+
+# Dependencies and build output
+node_modules/
+dist/
+build/

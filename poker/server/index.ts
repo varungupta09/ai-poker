@@ -63,6 +63,11 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
+// ── GET /health ────────────────────────────────────────────────────────────
+app.get("/health", (_req, res) => {
+  res.status(200).json({ ok: true })
+})
+
 // ── POST /game ──────────────────────────────────────────────────────────────
 // Create a new game session.
 app.post("/game", (req, res) => {

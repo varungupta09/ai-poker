@@ -2,6 +2,19 @@ import { useState, useEffect, useRef } from "react";
 import { activeAgent } from "../mocks/mockAgents.js";
 import { mockMatchEvents } from "../mocks/mockMatchEvents.js";
 
+function toDisplayAgent(agent, fallback) {
+  const a = agent ?? fallback;
+  if (!a) return { name: "Agent", avatar: "?", color: "#94a3b8", style: "—" };
+  const name = a.name ?? "Agent";
+  const initials = name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "?";
+  return {
+    name,
+    avatar: a.avatar ?? initials,
+    color: a.color ?? "#e01b2d",
+    style: a.style ?? a.type ?? "—",
+  };
+}
+
 // ─── Card helpers ─────────────────────────────────────────────────────────────
 
 const SUIT_SYMBOLS = { h: "♥", d: "♦", c: "♣", s: "♠" };
@@ -517,19 +530,19 @@ function formatAction(verb, amount) {
   return amount && amount > 0 ? `${v} ${amount}` : v;
 }
 
-export default function MatchScreen({ setScreen, setScreenParams, screenParams }) {
+export default function MatchScreen({ setScreen, setScreenParams, screenParams, eventsOverride, isTestMatchOverride }) {
   const opponent  = screenParams?.opponent;
   const matchId   = screenParams?.matchId || "mock-1";
-  const events    = screenParams?.events ?? mockMatchEvents[matchId] ?? [];
+  const events    = eventsOverride ?? screenParams?.events ?? mockMatchEvents[matchId] ?? [];
   const totalHands = events.length
     ? Math.max(...events.map((e) => e.handNumber || 0), 1)
     : 20;
-  const manualAdvance = !!screenParams?.events;
+  // Test match = event stream ends with "match_end" (from runPokerGameMatch). No refs/params needed.
+  const isTestMatchStream = events.length > 0 && events[events.length - 1]?.type === "match_end";
+  const manualAdvance = isTestMatchStream;
 
-  const agentA = { name: activeAgent.name, avatar: activeAgent.avatar, color: activeAgent.color, style: activeAgent.style };
-  const agentB = opponent
-    ? { name: opponent.name, avatar: opponent.avatar, color: opponent.color, style: opponent.style }
-    : { name: "AggroBot", avatar: "AB", color: "#d97706", style: "Aggressive" };
+  const agentA = toDisplayAgent(screenParams?.agent, activeAgent);
+  const agentB = toDisplayAgent(opponent, { name: "AggroBot", avatar: "AB", color: "#d97706", style: "Aggressive" });
 
   const [matchState, setMatchState] = useState({ ...INITIAL_MATCH_STATE });
   const [eventIdx, setEventIdx]     = useState(0);
@@ -642,8 +655,9 @@ export default function MatchScreen({ setScreen, setScreenParams, screenParams }
         break;
       }
       case "match_end": {
+        const winnerName = payload.winner === "b" ? agentB.name : agentA.name;
         next.actionLog = [
-          { type: "winner", text: `MATCH OVER — ${agentA.name} wins!` },
+          { type: "winner", text: `MATCH OVER — ${winnerName} wins!` },
           ...next.actionLog,
         ];
         break;
@@ -653,18 +667,22 @@ export default function MatchScreen({ setScreen, setScreenParams, screenParams }
     return next;
   }
 
-  // Advance event loop. In manual mode: auto-play within a hand, pause before hand_start or match_end.
+  // Advance event loop. For test match (stream ends with match_end): pause before hand_start (except first) and match_end.
   useEffect(() => {
     if (!isPlaying) return;
     if (eventIdx >= events.length) return;
 
     const ev = events[eventIdx];
-    const pauseBeforeHandStart = manualAdvance && ev.type === "hand_start" && eventIdx > 0;
-    if (manualAdvance && (pauseBeforeHandStart || ev.type === "match_end")) {
-      return;
+    const isHandStart = ev?.type === "hand_start";
+    const isMatchEnd = ev?.type === "match_end";
+    const isTestMatch = events.length > 0 && events[events.length - 1]?.type === "match_end";
+    const shouldPause = isTestMatch && (isMatchEnd || (isHandStart && eventIdx > 0));
+
+    if (shouldPause) {
+      return () => {};
     }
 
-    const delay = ev?.type === "hand_start" ? 900 : 700 + Math.random() * 500;
+    const delay = isHandStart ? 900 : 700 + Math.random() * 500;
 
     timerRef.current = setTimeout(() => {
       if (!isPlayingRef.current) return;
@@ -682,7 +700,7 @@ export default function MatchScreen({ setScreen, setScreenParams, screenParams }
     }, delay);
 
     return () => clearTimeout(timerRef.current);
-  }, [eventIdx, isPlaying, replayKey, manualAdvance, events.length]);
+  }, [eventIdx, isPlaying, replayKey, events]);
 
   function handleNext() {
     if (eventIdx >= events.length) {
